@@ -1,0 +1,1 @@
+FROM pgvector/pgvector:0.7.4-pg16
