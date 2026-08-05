@@ -96,8 +96,10 @@ class Settings(BaseSettings):
 
     # Security & Authentication Settings
     JWT_ALGORITHM: str = "RS256"
-    JWT_PRIVATE_KEY_PATH: str = "/absolute/path/to/private_key.pem"
-    JWT_PUBLIC_KEY_PATH: str = "/absolute/path/to/public_key.pem"
+    JWT_PRIVATE_KEY: str = ""
+    JWT_PUBLIC_KEY: str = ""
+    JWT_PRIVATE_KEY_PATH: str = ""
+    JWT_PUBLIC_KEY_PATH: str = ""
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
