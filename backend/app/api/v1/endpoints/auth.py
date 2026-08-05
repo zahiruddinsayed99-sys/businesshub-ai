@@ -16,18 +16,12 @@ from app.core.session import create_session, revoke_session
 from app.core.tenant_middleware import AuthError, TenantContext, get_tenant_context
 from app.domain.models.user import User
 from app.domain.models.user_role import UserRole
-<<<<<<< HEAD
-from app.schemas.tenant import StandardOnboardResponse, TenantOnboardRequest
-from app.services.tenant_service import TenantService
-=======
 from app.domain.models.organization import Organization
 from app.schemas.auth import OnboardTenantRequest
 from app.repositories.user_repository import UserRepository
 from app.repositories.organization_repository import OrganizationRepository
->>>>>>> c7e035c9a92f3506d24d2fd05beada633440ee59
 
 router = APIRouter()
-tenant_service = TenantService()
 
 
 class LoginRequest(BaseModel):
@@ -41,32 +35,13 @@ class TokenResponse(BaseModel):
     expires_in: int = 900
 
 
-<<<<<<< HEAD
-@router.post("/onboard", response_model=StandardOnboardResponse, status_code=status.HTTP_201_CREATED)
-async def onboard_tenant_endpoint(
-    payload: TenantOnboardRequest,
-=======
 @router.post("/onboard", status_code=status.HTTP_201_CREATED)
 async def onboard(
     payload: OnboardTenantRequest,
->>>>>>> c7e035c9a92f3506d24d2fd05beada633440ee59
     response: Response,
     db: AsyncSession = Depends(get_db),
     redis: aioredis.Redis = Depends(get_redis_client),
 ):
-<<<<<<< HEAD
-    """
-    Onboard a new organization and tenant owner user.
-    Unified onboarding API endpoint.
-    """
-    return await tenant_service.onboard_tenant_standard(
-        db=db,
-        redis=redis,
-        response=response,
-        payload=payload,
-    )
-
-=======
     """Unified self-service onboarding pipeline."""
     user_repo = UserRepository(db)
     org_repo = OrganizationRepository(db)
@@ -157,7 +132,6 @@ async def onboard(
         }
     }
 
->>>>>>> c7e035c9a92f3506d24d2fd05beada633440ee59
 
 @router.post("/login", response_model=TokenResponse)
 async def login(
@@ -256,3 +230,72 @@ async def protected_resource(
         "organization_id": str(context.organization_id),
         "role": context.role,
     }
+
+import hashlib
+from datetime import datetime, timezone
+from app.domain.models.invitation import Invitation
+from app.schemas.auth import InviteAcceptRequest
+
+@router.post("/invite/accept")
+async def accept_invite(
+    payload: InviteAcceptRequest,
+    db: AsyncSession = Depends(get_db),
+    redis: aioredis.Redis = Depends(get_redis_client),
+):
+    """Accept an invitation via plaintext token."""
+    token_hash = hashlib.sha256(payload.token.encode()).hexdigest()
+
+    async with db.begin():
+        stmt = select(Invitation).where(
+            Invitation.token_hash == token_hash,
+            Invitation.expires_at > datetime.now(timezone.utc),
+            Invitation.accepted_at.is_(None),
+            Invitation.deleted_at.is_(None)
+        )
+        result = await db.execute(stmt)
+        invite = result.scalars().first()
+
+        if not invite:
+            # Let's check if it exists but expired
+            stmt_expired = select(Invitation).where(
+                Invitation.token_hash == token_hash,
+                Invitation.accepted_at.is_(None),
+                Invitation.deleted_at.is_(None)
+            )
+            res_expired = await db.execute(stmt_expired)
+            if res_expired.scalars().first():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail={"code": "ERR_TOKEN_001", "detail": "Token expired"}
+                )
+
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"code": "ERR_TOKEN_001", "detail": "Invalid token"}
+            )
+
+        # Create user
+        user = User(
+            email=invite.email,
+            full_name=payload.full_name,
+            hashed_password=hash_password(payload.password),
+        )
+        db.add(user)
+        await db.flush()
+
+        # Add role
+        user_role = UserRole(
+            user_id=user.id,
+            organization_id=invite.organization_id,
+            role="DOMAIN_MEMBER",
+        )
+        db.add(user_role)
+
+        # Mark as accepted
+        invite.accepted_at = datetime.now(timezone.utc)
+        await db.flush()
+
+    # Evict cache
+    await redis.delete(f"org:{invite.organization_id}:usr:{user.id}:perms")
+
+    return {"status": "success", "message": "Invitation accepted"}

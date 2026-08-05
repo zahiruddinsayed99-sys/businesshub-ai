@@ -1,0 +1,32 @@
+<div class="crm-pipeline-container">
+  <div class="header">
+    <h2>CRM Deal Pipeline</h2>
+    <div class="filters">
+      <button [class.active]="filterMode() === 'ALL'" (click)="setFilter('ALL')">All Team Deals</button>
+      <button [class.active]="filterMode() === 'MINE'" (click)="setFilter('MINE')">My Assigned Deals</button>
+    </div>
+  </div>
+
+  <div class="toast-error" *ngIf="errorToast()">
+    {{ errorToast() }}
+  </div>
+
+  <div class="kanban-board" cdkDropListGroup>
+    <div class="kanban-column" *ngFor="let stage of columns">
+      <div class="column-header">{{ stage }}</div>
+
+      <div
+        cdkDropList
+        [cdkDropListData]="getDealsByStage(stage)"
+        (cdkDropListDropped)="drop($event, stage)"
+        class="deal-list">
+
+        <div class="deal-card" *ngFor="let deal of getDealsByStage(stage)" cdkDrag>
+          <div class="deal-title">{{ deal.title }}</div>
+          <div class="deal-value">{{ deal.value_amount | currency:deal.currency }}</div>
+          <div class="deal-owner" *ngIf="deal.owner_user_id">Owner ID: {{ deal.owner_user_id.substring(0,8) }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
