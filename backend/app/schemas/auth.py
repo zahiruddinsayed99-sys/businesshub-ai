@@ -12,3 +12,14 @@ class OnboardTenantRequest(BaseModel):
     full_name: str = Field(..., description="User full name")
 
     model_config = ConfigDict(from_attributes=True)
+
+class InvitationRequest(BaseModel):
+    email: EmailStr = Field(..., description="Email address to invite")
+
+class InvitationResponse(BaseModel):
+    token: str = Field(..., description="Plaintext invitation token")
+
+class InviteAcceptRequest(BaseModel):
+    token: str = Field(..., description="Plaintext invitation token")
+    full_name: str = Field(..., min_length=2, description="User full name")
+    password: str = Field(..., min_length=8, description="User password")

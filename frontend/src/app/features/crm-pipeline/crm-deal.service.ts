@@ -1,0 +1,20 @@
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { CrmDeal } from './crm-deal.model';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class CrmDealService {
+  private http = inject(HttpClient);
+  private apiUrl = '/api/v1/crm/deals';
+
+  getDeals(): Observable<CrmDeal[]> {
+    return this.http.get<CrmDeal[]>(this.apiUrl);
+  }
+
+  updateDealStage(dealId: string, stage: string): Observable<CrmDeal> {
+    return this.http.patch<CrmDeal>(`${this.apiUrl}/${dealId}/stage`, { stage });
+  }
+}
