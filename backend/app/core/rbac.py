@@ -15,6 +15,7 @@ RBAC_CACHE_TTL_SECONDS = 15 * 60  # 15 minutes (900s)
 # System RBAC Role to Permission Mapping Matrix
 DEFAULT_ROLE_PERMISSIONS: Dict[str, List[str]] = {
     "OWNER": ["*"],
+    "TENANT_OWNER": ["*"],
     "ADMIN": [
         "crm:read",
         "crm:write",

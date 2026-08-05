@@ -43,6 +43,7 @@ class TenantRepository:
         admin_email: str,
         hashed_password: str,
         admin_full_name: str,
+        role: str = "TENANT_OWNER",
     ) -> Tuple[Organization, User, UserRole]:
         """Atomically create Organization, Admin User, and UserRole inside single transaction."""
         org = Organization(
@@ -65,7 +66,7 @@ class TenantRepository:
         user_role = UserRole(
             user_id=user.id,
             organization_id=org.id,
-            role="ADMIN",
+            role=role,
         )
         db.add(user_role)
         await db.commit()

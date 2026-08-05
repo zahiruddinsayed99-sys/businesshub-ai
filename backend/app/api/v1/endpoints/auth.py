@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 import redis.asyncio as aioredis
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.rbac import RequiresPermission
 from app.core.redis import get_redis_client
@@ -14,8 +15,11 @@ from app.core.session import create_session, revoke_session
 from app.core.tenant_middleware import AuthError, TenantContext, get_tenant_context
 from app.domain.models.user import User
 from app.domain.models.user_role import UserRole
+from app.schemas.tenant import StandardOnboardResponse, TenantOnboardRequest
+from app.services.tenant_service import TenantService
 
 router = APIRouter()
+tenant_service = TenantService()
 
 
 class LoginRequest(BaseModel):
@@ -27,6 +31,25 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int = 900
+
+
+@router.post("/onboard", response_model=StandardOnboardResponse, status_code=status.HTTP_201_CREATED)
+async def onboard_tenant_endpoint(
+    payload: TenantOnboardRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    redis: aioredis.Redis = Depends(get_redis_client),
+):
+    """
+    Onboard a new organization and tenant owner user.
+    Unified onboarding API endpoint.
+    """
+    return await tenant_service.onboard_tenant_standard(
+        db=db,
+        redis=redis,
+        response=response,
+        payload=payload,
+    )
 
 
 @router.post("/login", response_model=TokenResponse)

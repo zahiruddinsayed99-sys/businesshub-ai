@@ -1,47 +1,81 @@
 import re
 import uuid
 from datetime import datetime
-from typing import Optional
-from pydantic import BaseModel, EmailStr, field_validator
+from typing import Any, Dict, Optional
+from pydantic import BaseModel, EmailStr, field_validator, model_validator
 
 
 class TenantOnboardRequest(BaseModel):
-    org_name: str
+    name: Optional[str] = None
+    org_name: Optional[str] = None
     slug: Optional[str] = None
-    admin_email: EmailStr
-    admin_password: str
-    admin_full_name: str
-
-    @field_validator("org_name")
-    def validate_org_name(cls, v: str) -> str:
-        v = v.strip()
-        if len(v) < 2 or len(v) > 255:
-            raise ValueError("Organization name must be between 2 and 255 characters")
-        return v
+    email: Optional[EmailStr] = None
+    admin_email: Optional[EmailStr] = None
+    password: Optional[str] = None
+    admin_password: Optional[str] = None
+    full_name: Optional[str] = None
+    admin_full_name: Optional[str] = None
 
     @field_validator("slug")
     def validate_slug(cls, v: Optional[str]) -> Optional[str]:
-        if v is None or not v.strip():
+        if v is None or not str(v).strip():
             return None
-        v = v.strip().lower()
-        if not re.match(r"^[a-z0-9]+(?:-[a-z0-9]+)*$", v):
+        v_str = str(v).strip()
+        # Strict regex constraint: no uppercase or special characters allowed
+        if not re.match(r"^[a-z0-9]+(?:-[a-z0-9]+)*$", v_str):
             raise ValueError("Slug must contain only lowercase alphanumeric characters and hyphens")
-        if len(v) < 2 or len(v) > 100:
+        if len(v_str) < 2 or len(v_str) > 100:
             raise ValueError("Slug must be between 2 and 100 characters")
-        return v
+        return v_str
 
-    @field_validator("admin_password")
-    def validate_password(cls, v: str) -> str:
-        if len(v) < 8:
+    @model_validator(mode="after")
+    def validate_required_fields(self) -> "TenantOnboardRequest":
+        effective_name = self.name or self.org_name
+        if not effective_name or len(effective_name.strip()) < 2:
+            raise ValueError("Organization name must be at least 2 characters")
+
+        effective_email = self.email or self.admin_email
+        if not effective_email:
+            raise ValueError("Email is required")
+
+        effective_password = self.password or self.admin_password
+        if not effective_password or len(effective_password.strip()) < 8:
             raise ValueError("Password must be at least 8 characters long")
-        return v
 
-    @field_validator("admin_full_name")
-    def validate_full_name(cls, v: str) -> str:
-        v = v.strip()
-        if len(v) < 2 or len(v) > 255:
-            raise ValueError("Admin full name must be between 2 and 255 characters")
-        return v
+        effective_full_name = self.full_name or self.admin_full_name
+        if not effective_full_name or len(effective_full_name.strip()) < 2:
+            raise ValueError("Full name must be at least 2 characters")
+
+        return self
+
+    @property
+    def resolved_org_name(self) -> str:
+        return (self.name or self.org_name or "").strip()
+
+    @property
+    def resolved_email(self) -> str:
+        return (self.email or self.admin_email or "").strip()
+
+    @property
+    def resolved_password(self) -> str:
+        return (self.password or self.admin_password or "").strip()
+
+    @property
+    def resolved_full_name(self) -> str:
+        return (self.full_name or self.admin_full_name or "").strip()
+
+
+class StandardOnboardSuccessData(BaseModel):
+    organization_id: uuid.UUID
+    user_id: uuid.UUID
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int = 900
+
+
+class StandardOnboardResponse(BaseModel):
+    status: str = "success"
+    data: StandardOnboardSuccessData
 
 
 class TenantOnboardResponse(BaseModel):

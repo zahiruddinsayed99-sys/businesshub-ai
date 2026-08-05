@@ -9,7 +9,13 @@ from app.core.security import create_access_token, create_refresh_token, hash_pa
 from app.core.session import create_session
 from app.domain.models.organization import Organization
 from app.repositories.tenant_repository import TenantRepository
-from app.schemas.tenant import SlugCheckResponse, TenantOnboardRequest, TenantOnboardResponse
+from app.schemas.tenant import (
+    SlugCheckResponse,
+    StandardOnboardResponse,
+    StandardOnboardSuccessData,
+    TenantOnboardRequest,
+    TenantOnboardResponse,
+)
 
 
 class TenantService:
@@ -22,44 +28,51 @@ class TenantService:
         existing_org = await self.repo.get_org_by_slug(db, formatted_slug)
         return SlugCheckResponse(slug=formatted_slug, available=(existing_org is None))
 
-    async def onboard_tenant(
+    async def onboard_tenant_internal(
         self,
         db: AsyncSession,
         redis: aioredis.Redis,
         response: Response,
         payload: TenantOnboardRequest,
-    ) -> TenantOnboardResponse:
-        # Determine and format slug
-        raw_slug = payload.slug or payload.org_name
-        slug = TenantRepository.generate_slug(raw_slug)
+        role: str = "TENANT_OWNER",
+    ) -> Tuple[Organization, str, str, str, int]:
+        # Resolve request attributes
+        org_name = payload.resolved_org_name
+        email = payload.resolved_email
+        password = payload.resolved_password
+        full_name = payload.resolved_full_name
 
-        # 1. Check if slug exists
+        raw_slug = payload.slug or org_name
+        slug = TenantRepository.generate_slug(raw_slug) if not payload.slug else payload.slug
+
+        # 1. Check if slug exists -> 409 Conflict
         existing_org = await self.repo.get_org_by_slug(db, slug)
         if existing_org:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail={"code": "ERR_TENANT_SLUG_EXISTS", "detail": f"Organization slug '{slug}' is already taken"},
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Organization slug already registered",
             )
 
-        # 2. Check if email exists
-        existing_user = await self.repo.get_user_by_email(db, payload.admin_email)
+        # 2. Check if email exists -> 409 Conflict
+        existing_user = await self.repo.get_user_by_email(db, email)
         if existing_user:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail={"code": "ERR_USER_EMAIL_EXISTS", "detail": f"Email '{payload.admin_email}' is already registered"},
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Email already registered",
             )
 
         # 3. Hash password
-        hashed_password = hash_password(payload.admin_password)
+        hashed_password = hash_password(password)
 
         # 4. Atomic DB transaction (Org, Admin User, UserRole)
         org, user, user_role = await self.repo.create_tenant(
             db=db,
-            org_name=payload.org_name,
+            org_name=org_name,
             slug=slug,
-            admin_email=payload.admin_email,
+            admin_email=email,
             hashed_password=hashed_password,
-            admin_full_name=payload.admin_full_name,
+            admin_full_name=full_name,
+            role=role,
         )
 
         # 5. Generate RS256 token set and stateful session
@@ -90,15 +103,49 @@ class TenantService:
             samesite="strict",
             secure=not settings.DEBUG,
             max_age=7 * 24 * 3600,
+            path="/",
         )
 
+        return org, str(user.id), access_token, refresh_token, 900
+
+    async def onboard_tenant_standard(
+        self,
+        db: AsyncSession,
+        redis: aioredis.Redis,
+        response: Response,
+        payload: TenantOnboardRequest,
+    ) -> StandardOnboardResponse:
+        org, user_id_str, access_token, _, expires_in = await self.onboard_tenant_internal(
+            db=db, redis=redis, response=response, payload=payload, role="TENANT_OWNER"
+        )
+        return StandardOnboardResponse(
+            status="success",
+            data=StandardOnboardSuccessData(
+                organization_id=org.id,
+                user_id=uuid.UUID(user_id_str),
+                access_token=access_token,
+                token_type="bearer",
+                expires_in=expires_in,
+            ),
+        )
+
+    async def onboard_tenant(
+        self,
+        db: AsyncSession,
+        redis: aioredis.Redis,
+        response: Response,
+        payload: TenantOnboardRequest,
+    ) -> TenantOnboardResponse:
+        org, user_id_str, access_token, _, expires_in = await self.onboard_tenant_internal(
+            db=db, redis=redis, response=response, payload=payload, role="ADMIN"
+        )
         return TenantOnboardResponse(
             organization_id=org.id,
             org_name=org.name,
             slug=org.slug,
-            admin_user_id=user.id,
-            admin_email=user.email,
+            admin_user_id=uuid.UUID(user_id_str),
+            admin_email=payload.resolved_email,
             access_token=access_token,
             token_type="bearer",
-            expires_in=900,
+            expires_in=expires_in,
         )

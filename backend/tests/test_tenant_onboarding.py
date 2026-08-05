@@ -118,9 +118,9 @@ async def test_onboard_duplicate_slug_error():
         assert resp1.status_code == 201
 
         resp2 = await client.post("/api/v1/tenants/onboard", json=payload2)
-        assert resp2.status_code == 400
+        assert resp2.status_code == 409
         data2 = resp2.json()
-        assert data2["code"] == "ERR_TENANT_SLUG_EXISTS"
+        assert "already registered" in data2["detail"].lower()
 
 
 @pytest.mark.asyncio
@@ -149,9 +149,9 @@ async def test_onboard_duplicate_email_error():
         assert resp1.status_code == 201
 
         resp2 = await client.post("/api/v1/tenants/onboard", json=payload2)
-        assert resp2.status_code == 400
+        assert resp2.status_code == 409
         data2 = resp2.json()
-        assert data2["code"] == "ERR_USER_EMAIL_EXISTS"
+        assert "already registered" in data2["detail"].lower()
 
 
 @pytest.mark.asyncio
