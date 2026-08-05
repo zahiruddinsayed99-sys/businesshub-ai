@@ -1,0 +1,177 @@
+<div class="onboarding-container">
+  <div class="background-decor">
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+  </div>
+
+  <div class="onboarding-card">
+    <div class="card-header">
+      <div class="brand-badge">
+        <span class="icon">🚀</span> BusinessHub AI
+      </div>
+      <h1>Tenant Onboarding</h1>
+      <p class="subtitle">Set up your multi-tenant organization & administrator workspace</p>
+    </div>
+
+    <!-- Success State -->
+    <div *ngIf="onboardingSuccess" class="success-box">
+      <div class="success-icon">✓</div>
+      <h2>Organization Provisioned!</h2>
+      <p class="success-desc">Your tenant workspace has been created successfully and RS256 credentials issued.</p>
+      
+      <div class="details-grid">
+        <div class="detail-item">
+          <span class="label">Organization Name</span>
+          <span class="value">{{ onboardingSuccess.org_name }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Workspace Slug</span>
+          <span class="value badge">{{ onboardingSuccess.slug }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Admin Email</span>
+          <span class="value">{{ onboardingSuccess.admin_email }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Tenant ID</span>
+          <span class="value code">{{ onboardingSuccess.organization_id }}</span>
+        </div>
+      </div>
+
+      <div class="token-preview">
+        <span class="label">RS256 Access Token Issued</span>
+        <code>{{ onboardingSuccess.access_token.substring(0, 36) }}...</code>
+      </div>
+
+      <button class="btn btn-primary btn-full" (click)="onboardingSuccess = null">
+        Go to Tenant Dashboard
+      </button>
+    </div>
+
+    <!-- Form State -->
+    <form *ngIf="!onboardingSuccess" [formGroup]="onboardingForm" (ngSubmit)="onSubmit()">
+      
+      <div *ngIf="errorMessage" class="error-banner">
+        ⚠️ {{ errorMessage }}
+      </div>
+
+      <!-- Section 1: Organization Details -->
+      <div class="form-section">
+        <h3>1. Organization Details</h3>
+        
+        <div class="form-group">
+          <label for="org_name">Organization Name *</label>
+          <input
+            id="org_name"
+            type="text"
+            formControlName="org_name"
+            placeholder="e.g. Acme Corporation"
+            [class.is-invalid]="onboardingForm.get('org_name')?.invalid && onboardingForm.get('org_name')?.touched"
+          />
+          <div *ngIf="onboardingForm.get('org_name')?.invalid && onboardingForm.get('org_name')?.touched" class="field-error">
+            Organization name is required (min 2 characters).
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="slug">
+            Workspace Slug
+            <span class="tooltip">URL subdomain identifier</span>
+          </label>
+          <div class="slug-input-wrapper">
+            <span class="prefix">https://</span>
+            <input
+              id="slug"
+              type="text"
+              formControlName="slug"
+              placeholder="acme-corp"
+              (input)="onSlugInput($event)"
+            />
+            <span class="suffix">.businesshub.ai</span>
+          </div>
+
+          <div class="slug-status" *ngIf="isCheckingSlug || isSlugAvailable !== null">
+            <span *ngIf="isCheckingSlug" class="status checking">⏳ Checking availability...</span>
+            <span *ngIf="!isCheckingSlug && isSlugAvailable === true" class="status available">✓ Slug available</span>
+            <span *ngIf="!isCheckingSlug && isSlugAvailable === false" class="status taken">✗ Slug already taken</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Admin Account Details -->
+      <div class="form-section">
+        <h3>2. Administrator Account</h3>
+
+        <div class="form-group">
+          <label for="admin_full_name">Admin Full Name *</label>
+          <input
+            id="admin_full_name"
+            type="text"
+            formControlName="admin_full_name"
+            placeholder="e.g. Sarah Connor"
+            [class.is-invalid]="onboardingForm.get('admin_full_name')?.invalid && onboardingForm.get('admin_full_name')?.touched"
+          />
+          <div *ngIf="onboardingForm.get('admin_full_name')?.invalid && onboardingForm.get('admin_full_name')?.touched" class="field-error">
+            Full name is required.
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="admin_email">Admin Work Email *</label>
+          <input
+            id="admin_email"
+            type="email"
+            formControlName="admin_email"
+            placeholder="sarah@acme.com"
+            [class.is-invalid]="onboardingForm.get('admin_email')?.invalid && onboardingForm.get('admin_email')?.touched"
+          />
+          <div *ngIf="onboardingForm.get('admin_email')?.invalid && onboardingForm.get('admin_email')?.touched" class="field-error">
+            Valid email address is required.
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="admin_password">Admin Password *</label>
+          <input
+            id="admin_password"
+            type="password"
+            formControlName="admin_password"
+            placeholder="••••••••••••"
+            [class.is-invalid]="onboardingForm.get('admin_password')?.invalid && onboardingForm.get('admin_password')?.touched"
+          />
+
+          <!-- Password Strength Meter -->
+          <div class="strength-meter" *ngIf="onboardingForm.get('admin_password')?.value">
+            <div class="bar-background">
+              <div
+                class="bar-fill"
+                [style.width.%]="getPasswordStrength().score"
+                [style.background-color]="getPasswordStrength().color"
+              ></div>
+            </div>
+            <span class="strength-text" [style.color]="getPasswordStrength().color">
+              {{ getPasswordStrength().label }}
+            </span>
+          </div>
+
+          <div *ngIf="onboardingForm.get('admin_password')?.invalid && onboardingForm.get('admin_password')?.touched" class="field-error">
+            Password must be at least 8 characters long.
+          </div>
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        class="btn btn-primary btn-full"
+        [disabled]="isSubmitting || onboardingForm.invalid || isSlugAvailable === false"
+      >
+        <span *ngIf="!isSubmitting">Complete Organization Setup 🚀</span>
+        <span *ngIf="isSubmitting" class="spinner-text">
+          <span class="spinner"></span> Provisioning Tenant...
+        </span>
+      </button>
+
+    </form>
+
+  </div>
+</div>

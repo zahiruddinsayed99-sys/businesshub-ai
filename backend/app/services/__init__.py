@@ -1,1 +1,3 @@
-"""Application services and business use-cases package."""
+from app.services.tenant_service import TenantService
+
+__all__ = ["TenantService"]
