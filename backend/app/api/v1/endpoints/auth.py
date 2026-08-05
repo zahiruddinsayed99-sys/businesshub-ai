@@ -1,4 +1,5 @@
 import uuid
+from app.core.config import settings
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, EmailStr
