@@ -86,7 +86,7 @@ def hash_password(password: str) -> str:
     """Hash password using PBKDF2 with SHA256 and a random salt."""
     salt = os.urandom(16)
     hashed = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 100000)
-    return f"{salt.hex()}:${hashed.hex()}"
+    return f"{salt.hex()}${hashed.hex()}"
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
