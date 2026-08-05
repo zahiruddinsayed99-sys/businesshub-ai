@@ -63,6 +63,10 @@ def get_rsa_keys() -> Tuple[str, str]:
             pass
 
     if priv_key and pub_key:
+        if "\\n" in priv_key:
+            priv_key = priv_key.replace("\\n", "\n")
+        if "\\n" in pub_key:
+            pub_key = pub_key.replace("\\n", "\n")
         return priv_key, pub_key
 
     # Fallback to generated cached keys for local development

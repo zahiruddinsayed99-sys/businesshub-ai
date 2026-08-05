@@ -81,7 +81,7 @@ async def login(
         value=refresh_token,
         httponly=True,
         samesite="strict",
-        secure=False,  # Can be true in production HTTPS
+        secure=not settings.DEBUG,
         max_age=7 * 24 * 3600,
     )
 
