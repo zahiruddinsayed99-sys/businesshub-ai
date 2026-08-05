@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
+from app.api.v1.api import api_router
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -18,15 +19,8 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_headers=["*"],
     )
 
-
-@app.get(f"{settings.API_V1_STR}/healthz", status_code=200, tags=["Health"])
-async def health_check():
-    """Basic health check endpoint returning status 200 OK."""
-    return {
-        "status": "ok",
-        "app_name": settings.APP_NAME,
-        "environment": settings.APP_ENV,
-    }
+# Include API v1 Router
+app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/", tags=["Root"])
