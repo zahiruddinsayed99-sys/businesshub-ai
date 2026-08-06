@@ -9,5 +9,9 @@ export const routes: Routes = [
   },
   { path: 'onboard', component: TenantOnboardingComponent },
   { path: 'crm', component: CrmPipelineComponent },
+  {
+    path: 'ai',
+    loadComponent: () => import('./features/ai-platform/ai-dashboard.component').then(m => m.AiDashboardComponent)
+  },
   { path: '', redirectTo: 'onboard', pathMatch: 'full' },
 ];
