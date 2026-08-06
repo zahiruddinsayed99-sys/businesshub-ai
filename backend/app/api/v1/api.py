@@ -6,6 +6,7 @@ from app.api.v1.endpoints import (
     tenants,
     crm_deals,
     billing,
+    ai,
 )
 
 api_router = APIRouter()
@@ -15,3 +16,4 @@ api_router.include_router(tenants.router, prefix="/tenants", tags=["Tenants"])
 api_router.include_router(organizations.router, prefix="/organizations", tags=["Organizations"])
 api_router.include_router(crm_deals.router, prefix="/crm/deals", tags=["CRM Deals"])
 api_router.include_router(billing.router, prefix="/billing", tags=["Billing"])
+api_router.include_router(ai.router, prefix="/ai", tags=["AI"])
