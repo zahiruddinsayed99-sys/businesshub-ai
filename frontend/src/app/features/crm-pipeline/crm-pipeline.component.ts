@@ -16,7 +16,7 @@ import { debounceTime } from 'rxjs/operators';
   styleUrls: ['./crm-pipeline.component.scss']
 })
 export class CrmPipelineComponent implements OnInit {
-  private stageUpdateSubject = new Subject<{deal: CrmDeal, newStage: string, oldStage: string}>();
+  private stageUpdateSubject = new Subject<{ deal: CrmDeal, newStage: string, oldStage: string }>();
   private crmService = inject(CrmDealService);
 
   // Use Signals for state management
@@ -42,7 +42,7 @@ export class CrmPipelineComponent implements OnInit {
   ngOnInit() {
     this.stageUpdateSubject.pipe(
       debounceTime(500)
-    ).subscribe(({deal, newStage, oldStage}) => {
+    ).subscribe(({ deal, newStage, oldStage }) => {
       this.crmService.updateDealStage(deal.id, newStage).subscribe({
         error: (err) => {
           console.error(err);
@@ -64,7 +64,7 @@ export class CrmPipelineComponent implements OnInit {
       // Fetch /api/v1/auth/me here to get user ID if needed,
       // but for testing we can assume it works if we have it in memory somewhere
       fetch('/api/v1/auth/me').then(r => r.json()).then(data => {
-         if (data.user_id) this.currentUserId.set(data.user_id);
+        if (data.user_id) this.currentUserId.set(data.user_id);
       }).catch(e => console.error(e));
     }
     this.loadDeals();
@@ -94,7 +94,7 @@ export class CrmPipelineComponent implements OnInit {
       const deal = event.previousContainer.data[event.previousIndex];
       const oldStage = deal.stage;
 
-            // Optimistic update
+      // Optimistic update
       this.deals.update(deals => {
         return deals.map(d =>
           d.id === deal.id ? { ...d, stage: newStage } : d
@@ -102,15 +102,13 @@ export class CrmPipelineComponent implements OnInit {
       });
 
       // API Call with debounce/immediate
-      this.stageUpdateSubject.next({deal, newStage, oldStage});
-          this.showErrorToast("Failed to update deal stage. Rolled back.");
-        }
-      });
+      this.stageUpdateSubject.next({ deal, newStage, oldStage });
+      this.showErrorToast("Failed to update deal stage. Rolled back.");
     }
-  }
-
+  };
   showErrorToast(msg: string) {
     this.errorToast.set(msg);
     setTimeout(() => this.errorToast.set(null), 3000);
   }
 }
+
