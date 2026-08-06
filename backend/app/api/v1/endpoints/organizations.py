@@ -1,11 +1,18 @@
-from app.core.billing import check_soft_lock_overage
+import secrets
+import hashlib
+from datetime import datetime, timedelta, timezone
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.billing import check_soft_lock_overage
 from app.core.database import get_db
 from app.core.rbac import RequiresPermission
 from app.core.tenant_middleware import TenantContext, get_tenant_context
+from app.domain.models.invitation import Invitation
 from app.repositories.tenant_repository import TenantRepository
+from app.schemas.auth import InvitationRequest, InvitationResponse
 from app.schemas.tenant import OrganizationResponse, OrganizationUpdate
 
 router = APIRouter()
@@ -49,12 +56,6 @@ async def update_current_organization(
     )
     return updated_org
 
-import secrets
-import hashlib
-from datetime import datetime, timedelta, timezone
-from sqlalchemy import select, and_, or_
-from app.domain.models.invitation import Invitation
-from app.schemas.auth import InvitationRequest, InvitationResponse
 
 @router.post("/invitations", response_model=InvitationResponse)
 async def create_invitation(
@@ -65,13 +66,12 @@ async def create_invitation(
     """Generate a random URL-safe plaintext token and compute SHA-256 hash."""
     await check_soft_lock_overage(db, context.organization_id)
 
-
     # Check if duplicate active invite exists
     stmt = select(Invitation).where(
         Invitation.organization_id == context.organization_id,
         Invitation.email == payload.email,
         Invitation.accepted_at.is_(None),
-        Invitation.deleted_at.is_(None)
+        Invitation.deleted_at.is_(None),
     )
     result = await db.execute(stmt)
     existing_invite = result.scalars().first()
@@ -80,10 +80,13 @@ async def create_invitation(
         if existing_invite.expires_at > datetime.now(timezone.utc):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail={"code": "ERR_INVITE_001", "detail": "Active invitation already exists for this email"}
+                detail={
+                    "code": "ERR_INVITE_001",
+                    "detail": "Active invitation already exists for this email",
+                },
             )
         else:
-            # Expired invite, we can create a new one (soft delete old one maybe? or let constraints handle it? The constraint is on accepted_at IS NULL AND deleted_at IS NULL, so we should soft delete the old one first if we create a new one, but let's soft delete it)
+            # Soft delete the expired invite before creating a new one
             existing_invite.deleted_at = datetime.now(timezone.utc)
             await db.flush()
 
