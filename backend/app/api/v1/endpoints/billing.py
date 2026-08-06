@@ -1,3 +1,4 @@
+from starlette.concurrency import run_in_threadpool
 import uuid
 import stripe
 from typing import Optional
@@ -33,7 +34,7 @@ async def create_checkout_session(
 
     customer_id = organization.stripe_customer_id
     if not customer_id:
-        customer = stripe.Customer.create(
+        customer = await run_in_threadpool(stripe.Customer.create,
             name=organization.name,
             metadata={"organization_id": str(organization.id)}
         )
@@ -64,13 +65,13 @@ async def create_checkout_session(
         }
 
         if organization.gstin:
-            stripe.Customer.create_tax_id(
+            await run_in_threadpool(stripe.Customer.create_tax_id,
                 customer_id,
                 type="in_gst",
                 value=organization.gstin
             )
 
-        checkout_session = stripe.checkout.Session.create(**session_kwargs)
+        checkout_session = await run_in_threadpool(stripe.checkout.Session.create,**session_kwargs)
 
         return {"url": checkout_session.url}
     except Exception as e:
@@ -90,7 +91,7 @@ async def create_customer_portal(
         raise HTTPException(status_code=400, detail="No active Stripe customer found")
 
     try:
-        portal_session = stripe.billing_portal.Session.create(
+        portal_session = await run_in_threadpool(stripe.billing_portal.Session.create,
             customer=organization.stripe_customer_id,
             return_url="http://localhost:4200/billing"
         )
@@ -107,7 +108,7 @@ async def stripe_webhook(
 ):
     payload = await request.body()
     try:
-        event = stripe.Webhook.construct_event(
+        event = await run_in_threadpool(stripe.Webhook.construct_event,
             payload, stripe_signature, settings.STRIPE_WEBHOOK_SECRET
         )
     except ValueError as e:

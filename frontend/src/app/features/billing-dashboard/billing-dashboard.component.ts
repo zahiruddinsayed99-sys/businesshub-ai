@@ -33,21 +33,23 @@ export class BillingDashboardComponent {
   }
 
   loadBillingInfo() {
-    this.subscriptionTier.set('FREE');
-    this.activePlanStatus.set('INACTIVE');
-    this.seatsUsed.set(4);
-    this.seatsMax.set(3);
-    this.creditsUsed.set(90);
-    this.creditsMax.set(100);
+    this.http.get<any>('/api/v1/organizations/me').subscribe(res => {
+      this.subscriptionTier.set(res.subscription_tier || 'FREE');
+      this.activePlanStatus.set(res.subscription_status || 'INACTIVE');
+      this.creditsUsed.set(res.ai_credits_used || 0);
+      this.creditsMax.set(100 + (res.bonus_ai_credits || 0));
+      this.seatsUsed.set(res.user_count || 1);
+      this.seatsMax.set(3);
 
-    if (this.subscriptionTier() === 'FREE' && this.seatsUsed() > this.seatsMax()) {
-      this.isSoftLocked.set(true);
-    }
+      if (this.subscriptionTier() === 'FREE' && this.seatsUsed() > this.seatsMax()) {
+        this.isSoftLocked.set(true);
+      }
+    });
   }
 
   saveGstin() {
     if (this.gstinForm.valid) {
-      console.log('Saved GSTIN: ', this.gstinForm.value);
+      this.http.patch('/api/v1/organizations/me', this.gstinForm.value).subscribe();
     }
   }
 

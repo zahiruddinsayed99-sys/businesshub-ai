@@ -32,7 +32,7 @@ def upgrade() -> None:
                existing_type=sa.VARCHAR(length=50),
                type_=sa.String(length=20),
                existing_nullable=False,
-               existing_server_default=sa.text("'FREE'::character varying"))
+               server_default='INACTIVE')
     op.create_index(op.f('ix_organizations_stripe_customer_id'), 'organizations', ['stripe_customer_id'], unique=True)
     op.create_index(op.f('ix_organizations_stripe_subscription_id'), 'organizations', ['stripe_subscription_id'], unique=True)
     # ### end Alembic commands ###
