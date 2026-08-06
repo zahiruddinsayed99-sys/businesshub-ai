@@ -1,3 +1,4 @@
+from app.core.billing import check_soft_lock_overage
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -62,6 +63,8 @@ async def create_invitation(
     db: AsyncSession = Depends(get_db),
 ):
     """Generate a random URL-safe plaintext token and compute SHA-256 hash."""
+    await check_soft_lock_overage(db, context.organization_id)
+
 
     # Check if duplicate active invite exists
     stmt = select(Invitation).where(

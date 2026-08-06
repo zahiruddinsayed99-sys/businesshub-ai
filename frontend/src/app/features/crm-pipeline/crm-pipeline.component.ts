@@ -103,9 +103,6 @@ export class CrmPipelineComponent implements OnInit {
 
       // API Call with debounce/immediate
       this.stageUpdateSubject.next({deal, newStage, oldStage});
-          this.showErrorToast("Failed to update deal stage. Rolled back.");
-        }
-      });
     }
   }
 

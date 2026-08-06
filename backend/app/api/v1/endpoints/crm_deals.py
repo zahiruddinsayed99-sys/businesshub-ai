@@ -1,3 +1,4 @@
+from app.core.billing import check_soft_lock_overage
 import uuid
 from typing import List
 from fastapi import APIRouter, Depends, status
@@ -36,6 +37,7 @@ async def create_deal(
     context: TenantContext = Depends(RequiresPermission("crm:write")),
     repo: CrmDealRepository = Depends(get_crm_deal_repo)
 ):
+    await check_soft_lock_overage(repo.db, context.organization_id)
     deal = CrmDeal(
         organization_id=context.organization_id,
         **payload.model_dump(exclude_unset=True)
@@ -49,6 +51,7 @@ async def update_deal(
     context: TenantContext = Depends(RequiresPermission("crm:write")),
     repo: CrmDealRepository = Depends(get_crm_deal_repo)
 ):
+    await check_soft_lock_overage(repo.db, context.organization_id)
     return await repo.update_deal(
         deal_id=deal_id,
         update_data=payload.model_dump(exclude_unset=True),
@@ -64,6 +67,7 @@ async def update_deal_stage(
     context: TenantContext = Depends(RequiresPermission("crm:write")),
     repo: CrmDealRepository = Depends(get_crm_deal_repo)
 ):
+    await check_soft_lock_overage(repo.db, context.organization_id)
     return await repo.update_deal(
         deal_id=deal_id,
         update_data={"stage": payload.stage},
@@ -78,6 +82,7 @@ async def delete_deal(
     context: TenantContext = Depends(RequiresPermission("crm:delete")),
     repo: CrmDealRepository = Depends(get_crm_deal_repo)
 ):
+    await check_soft_lock_overage(repo.db, context.organization_id)
     await repo.delete(
         deal_id=deal_id,
         organization_id=context.organization_id,

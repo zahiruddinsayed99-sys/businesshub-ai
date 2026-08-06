@@ -1,0 +1,49 @@
+<div class="billing-container">
+  <h2>Billing & Subscription</h2>
+
+  <div class="alert alert-warning" *ngIf="isSoftLocked()">
+    <strong>Soft-Lock Warning:</strong> Your account is over the seat limit for the FREE tier. Invites and write operations are frozen. Please upgrade to PRO to restore access.
+  </div>
+
+  <div class="card">
+    <h3>Current Plan</h3>
+    <p><strong>Tier:</strong> {{ subscriptionTier() }}</p>
+    <p><strong>Status:</strong> {{ activePlanStatus() }}</p>
+
+    <div class="meters">
+      <div class="meter">
+        <h4>Seats Used</h4>
+        <progress [value]="seatsUsed()" [max]="seatsMax()"></progress>
+        <span>{{ seatsUsed() }} / {{ seatsMax() }}</span>
+      </div>
+      <div class="meter">
+        <h4>AI Credits Used</h4>
+        <progress [value]="creditsUsed()" [max]="creditsMax()"></progress>
+        <span>{{ creditsUsed() }} / {{ creditsMax() }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mt-4">
+    <h3>B2B Profiling (GST)</h3>
+    <form [formGroup]="gstinForm" (ngSubmit)="saveGstin()">
+      <div class="form-group">
+        <label for="gstin">GSTIN (15-character ID)</label>
+        <input id="gstin" type="text" formControlName="gstin" class="form-control" />
+        <div *ngIf="gstinForm.controls.gstin.errors?.['pattern']" class="error-text">
+          Invalid GSTIN format.
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="billingState">Billing State</label>
+        <input id="billingState" type="text" formControlName="billingState" class="form-control" />
+      </div>
+      <button type="submit" [disabled]="!gstinForm.valid">Save Profile</button>
+    </form>
+  </div>
+
+  <div class="actions mt-4">
+    <button (click)="onCheckout()">Upgrade to PRO (Checkout)</button>
+    <button (click)="onCustomerPortal()">Manage Billing (Portal)</button>
+  </div>
+</div>

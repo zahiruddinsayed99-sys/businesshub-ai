@@ -10,6 +10,8 @@ ENV_FILE_PATH = ROOT_DIR / ".env"
 
 
 class Settings(BaseSettings):
+    STRIPE_API_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
     # Global Application Settings
     APP_ENV: str = "development"
     APP_NAME: str = "BusinessHub AI"
