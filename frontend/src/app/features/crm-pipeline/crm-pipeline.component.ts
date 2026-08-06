@@ -94,7 +94,7 @@ export class CrmPipelineComponent implements OnInit {
       const deal = event.previousContainer.data[event.previousIndex];
       const oldStage = deal.stage;
 
-            // Optimistic update
+      // Optimistic update
       this.deals.update(deals => {
         return deals.map(d =>
           d.id === deal.id ? { ...d, stage: newStage } : d
@@ -103,9 +103,6 @@ export class CrmPipelineComponent implements OnInit {
 
       // API Call with debounce/immediate
       this.stageUpdateSubject.next({deal, newStage, oldStage});
-          this.showErrorToast("Failed to update deal stage. Rolled back.");
-        }
-      });
     }
   }
 
