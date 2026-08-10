@@ -1,9 +1,11 @@
 import uuid
 from typing import List
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from celery.result import AsyncResult
+from app.core.celery_app import celery_app
 
-from app.core.billing import check_soft_lock_overage
+from app.core.billing import check_soft_lock_overage, consume_ai_credits_br_plt_002, BillingError
 from app.core.database import get_db
 from app.core.rbac import RequiresPermission
 from app.core.tenant_middleware import TenantContext, get_tenant_context
@@ -15,6 +17,8 @@ from app.schemas.crm_deal import (
     CrmDealUpdateStage,
     CrmDealResponse,
 )
+from sqlalchemy import select
+from app.tasks.crm_tasks import calculate_lead_score
 
 router = APIRouter()
 
@@ -100,3 +104,51 @@ async def delete_deal(
         organization_id=context.organization_id,
         role=context.role,
     )
+
+@router.post("/{deal_id}/ai-score", status_code=status.HTTP_202_ACCEPTED)
+async def score_deal_ai(
+    deal_id: uuid.UUID,
+    context: TenantContext = Depends(RequiresPermission("crm:write")),
+    db: AsyncSession = Depends(get_db)
+):
+    # Verify deal exists and belongs to the org
+    stmt = select(CrmDeal).where(CrmDeal.id == deal_id, CrmDeal.organization_id == context.organization_id)
+    result = await db.execute(stmt)
+    if not result.scalars().first():
+        raise HTTPException(status_code=404, detail={"code": "ERR_NOT_FOUND_001", "detail": "Deal not found"})
+
+    await check_soft_lock_overage(db, context.organization_id)
+    # Deduct 4 credits here. The background task executes a prompt consuming 1 more, making it 5 total.
+    await consume_ai_credits_br_plt_002(db, context.organization_id, 4)
+
+    # Needs a commit for ai_credits_used increment to take effect immediately
+    await db.commit()
+
+    job = calculate_lead_score.delay(str(deal_id))
+
+    return {"job_id": job.id, "deal_id": str(deal_id)}
+
+@router.post("/{deal_id}/draft-followup", status_code=status.HTTP_200_OK)
+async def draft_deal_followup(
+    deal_id: uuid.UUID,
+    context: TenantContext = Depends(RequiresPermission("crm:write")),
+    db: AsyncSession = Depends(get_db)
+):
+    # Verify deal exists and belongs to the org
+    stmt = select(CrmDeal).where(CrmDeal.id == deal_id, CrmDeal.organization_id == context.organization_id)
+    result = await db.execute(stmt)
+    if not result.scalars().first():
+        raise HTTPException(status_code=404, detail={"code": "ERR_NOT_FOUND_001", "detail": "Deal not found"})
+
+    await check_soft_lock_overage(db, context.organization_id)
+    # Deduct 4 credits here. execute_prompt consumes 1 more, making it 5 total.
+    await consume_ai_credits_br_plt_002(db, context.organization_id, 4)
+    await db.commit()
+
+    from app.domain.ai.gateway import AiGatewayService
+    gateway = AiGatewayService(db)
+
+    result = await gateway.execute_prompt(context.organization_id, "crm_followup_v1", {"deal_id": str(deal_id)})
+    await db.commit()
+
+    return {"draft": result}
