@@ -1,0 +1,3 @@
+{
+  "system_prompt": "Evaluate unstructured contact notes and history and output a JSON containing a score (0-100) and an array of intent_signals (max 5 strings)."
+}

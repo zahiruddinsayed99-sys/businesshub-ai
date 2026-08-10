@@ -14,7 +14,13 @@ def process_document_embeddings(self, organization_id_str: str, document_id_str:
     organization_id = uuid.UUID(organization_id_str)
     document_id = uuid.UUID(document_id_str)
 
-    loop = asyncio.get_event_loop()
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            raise RuntimeError("Event loop is already running")
+    except RuntimeError:
+        return asyncio.run(_process_document_embeddings_async(self, organization_id, document_id, text_content))
+
     return loop.run_until_complete(_process_document_embeddings_async(self, organization_id, document_id, text_content))
 
 async def _process_document_embeddings_async(task, organization_id: uuid.UUID, document_id: uuid.UUID, text_content: str):
