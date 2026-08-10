@@ -10,4 +10,7 @@ export interface CrmDeal {
   expected_close_date?: string;
   created_at: string;
   updated_at: string;
+  lead_score?: number;
+  intent_signals?: string[];
+  last_scored_at?: string;
 }
