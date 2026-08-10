@@ -22,3 +22,14 @@ class AiGatewayService:
         # Mock embedding generation for now
         # In a real scenario, this would call an external API like OpenAI
         return [0.1] * 1536
+
+    async def execute_prompt(self, organization_id: uuid.UUID, template_name: str, context: Dict[str, Any]) -> Any:
+        # Pre-flight check and deduct credits
+        await self.pre_flight_check(organization_id, credit_cost=1)
+
+        # Mocking prompt execution response
+        if template_name == "lead_scoring_v1":
+            return {"score": 85, "intent_signals": ["high_email_engagement", "pricing_page_visit"]}
+        elif template_name == "crm_followup_v1":
+            return "Here is a follow-up email draft based on the context."
+        return {}

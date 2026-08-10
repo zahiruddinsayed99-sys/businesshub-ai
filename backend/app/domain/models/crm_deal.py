@@ -1,8 +1,8 @@
 import uuid
 from datetime import datetime
 from typing import Optional, TYPE_CHECKING
-from sqlalchemy import String, Numeric, DateTime, ForeignKey, text, Index
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import String, Numeric, DateTime, ForeignKey, text, Index, Integer
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.domain.models.base import Base, TimestampMixin
 
@@ -43,6 +43,11 @@ class CrmDeal(Base, TimestampMixin):
     expected_close_date: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # AI Metadata Fields
+    lead_score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    intent_signals: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)
+    last_scored_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
     # Relationships
     organization: Mapped["Organization"] = relationship("Organization")
     contact: Mapped[Optional["Contact"]] = relationship("Contact")
@@ -52,6 +57,11 @@ class CrmDeal(Base, TimestampMixin):
         Index(
             "ix_crm_deals_org_stage_active",
             "organization_id", "stage",
+            postgresql_where=text("deleted_at IS NULL")
+        ),
+        Index(
+            "ix_crm_deals_org_lead_score",
+            "organization_id", "lead_score",
             postgresql_where=text("deleted_at IS NULL")
         ),
     )
