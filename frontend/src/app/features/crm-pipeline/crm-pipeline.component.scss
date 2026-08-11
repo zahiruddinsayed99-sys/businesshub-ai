@@ -1,0 +1,245 @@
+.crm-pipeline-container {
+  padding: 20px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.filters button {
+  padding: 8px 16px;
+  margin-left: 10px;
+  border: 1px solid #ccc;
+  background: white;
+  cursor: pointer;
+
+  &.active {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+  }
+}
+
+.toast-error {
+  background: #ff4d4f;
+  color: white;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.kanban-board {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  padding-bottom: 20px;
+}
+
+.kanban-column {
+  flex: 0 0 300px;
+  background: #f4f5f7;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+}
+
+.column-header {
+  padding: 12px;
+  font-weight: bold;
+  border-bottom: 1px solid #ddd;
+}
+
+.deal-list {
+  min-height: 200px;
+  padding: 10px;
+  flex: 1;
+}
+
+.deal-card {
+  background: white;
+  padding: 15px;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.deal-title {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.deal-value {
+  color: #28a745;
+  font-size: 0.9em;
+  margin-bottom: 5px;
+}
+
+.deal-owner {
+  font-size: 0.8em;
+  color: #666;
+}
+
+/* CDK drag drop styles */
+.cdk-drag-preview {
+  box-sizing: border-box;
+  border-radius: 4px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.25);
+  background: white;
+  padding: 15px;
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.3;
+}
+
+.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.ai-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.ai-btn {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8em;
+  background: #f0f0f0;
+
+  &:hover:not([disabled]) {
+    background: #e0e0e0;
+  }
+
+  &[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.score-btn {
+  background: #e1f5fe;
+  color: #0277bd;
+  &:hover:not([disabled]) { background: #b3e5fc; }
+}
+
+.draft-btn {
+  background: #f3e5f5;
+  color: #4a148c;
+  &:hover:not([disabled]) { background: #e1bee7; }
+}
+
+.ai-metrics {
+  margin-top: 8px;
+}
+
+.score-badge {
+  font-size: 0.8em;
+  padding: 2px 6px;
+  border-radius: 12px;
+  color: white;
+
+  &.high { background: #28a745; }
+  &.medium { background: #ffc107; color: #333; }
+  &.low { background: #dc3545; }
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.glassmorphic-modal {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  width: 500px;
+  max-width: 90vw;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255,255,255,0.3);
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+
+  h3 { margin: 0; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5em;
+  color: white;
+  cursor: pointer;
+}
+
+.modal-body {
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+}
+
+.loading-spinner {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-style: italic;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.draft-textarea {
+  flex: 1;
+  width: 100%;
+  resize: vertical;
+  min-height: 180px;
+  padding: 10px;
+  border-radius: 4px;
+  border: none;
+  background: rgba(255,255,255,0.8);
+  font-family: inherit;
+}
+
+.modal-footer {
+  margin-top: 15px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.copy-btn {
+  padding: 8px 16px;
+  background: #6200ea;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+
+  &:hover { background: #7c4dff; }
+}

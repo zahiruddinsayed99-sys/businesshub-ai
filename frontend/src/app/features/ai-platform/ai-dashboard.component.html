@@ -1,0 +1,36 @@
+<div class="ai-dashboard-container">
+  <div class="glass-panel uploader-widget">
+    <h2>Document Ingestion</h2>
+    <form [formGroup]="uploadForm" (ngSubmit)="onUpload()">
+      <div class="form-group">
+        <label for="title">Title</label>
+        <input id="title" type="text" formControlName="title" placeholder="Document Title" class="glass-input" />
+      </div>
+      <div class="form-group">
+        <label for="content">Content</label>
+        <textarea id="content" formControlName="content" placeholder="Paste document content here..." rows="5" class="glass-input"></textarea>
+      </div>
+      <button type="submit" [disabled]="uploadForm.invalid" class="glass-button primary">Upload & Ingest</button>
+    </form>
+
+    <div class="job-status" *ngIf="jobId()">
+      <p>Job ID: <strong>{{ jobId() }}</strong></p>
+      <p>Status: <span class="status-badge" [ngClass]="jobStatus()?.toLowerCase()">{{ jobStatus() }}</span></p>
+
+      <div class="progress-bar-container">
+        <div class="progress-bar" [style.width.%]="jobProgress()"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="glass-panel chat-widget">
+    <h2>Chat RAG</h2>
+    <div class="chat-messages">
+      <p class="placeholder-text">Knowledge base is ready. Start asking questions...</p>
+    </div>
+    <div class="chat-input-area">
+      <input type="text" placeholder="Ask anything..." class="glass-input" />
+      <button class="glass-button primary">Send</button>
+    </div>
+  </div>
+</div>
