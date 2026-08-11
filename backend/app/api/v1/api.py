@@ -17,3 +17,7 @@ api_router.include_router(organizations.router, prefix="/organizations", tags=["
 api_router.include_router(crm_deals.router, prefix="/crm/deals", tags=["CRM Deals"])
 api_router.include_router(billing.router, prefix="/billing", tags=["Billing"])
 api_router.include_router(ai.router, prefix="/ai", tags=["AI"])
+from app.api.v1.lms import authoring
+from app.api.v1.lms import learner
+api_router.include_router(authoring.router, prefix="/lms", tags=["LMS Authoring"])
+api_router.include_router(learner.router, prefix="/lms", tags=["LMS Learner"])
