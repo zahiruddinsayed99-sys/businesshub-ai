@@ -18,3 +18,17 @@ __all__ = [
     "CrmDeal",
     "OrganizationDocument",
 ]
+from app.domain.models.lms import Course, CourseModule, Lesson, CourseEnrollment, LessonProgress, Quiz, QuizQuestion, QuizAnswer, QuizAttempt, QuizResponse
+
+__all__.extend([
+    "Course",
+    "CourseModule",
+    "Lesson",
+    "CourseEnrollment",
+    "LessonProgress",
+    "Quiz",
+    "QuizQuestion",
+    "QuizAnswer",
+    "QuizAttempt",
+    "QuizResponse"
+])

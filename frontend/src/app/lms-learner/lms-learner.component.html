@@ -1,0 +1,24 @@
+<div class="glass-dashboard">
+  <h2>LMS Learner Dashboard</h2>
+
+  <div class="enrollment-card">
+    <h3>{{ activeEnrollment().courseTitle }}</h3>
+
+    <div class="progress-meter">
+      <div class="meter-fill" [style.width]="activeEnrollment().progressPercent + '%'"></div>
+    </div>
+    <div class="status-row">
+      <span>Status: {{ activeEnrollment().status }}</span>
+      <span class="warning-tag" *ngIf="activeEnrollment().warning">
+        ⚠️ {{ activeEnrollment().warning }}
+      </span>
+    </div>
+  </div>
+
+  <div class="lesson-player">
+    <h3>Current Lesson</h3>
+    <div class="markdown-container">
+      <markdown [data]="lessonMarkdown()"></markdown>
+    </div>
+  </div>
+</div>

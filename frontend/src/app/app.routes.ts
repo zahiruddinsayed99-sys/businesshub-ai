@@ -13,5 +13,13 @@ export const routes: Routes = [
     path: 'ai',
     loadComponent: () => import('./features/ai-platform/ai-dashboard.component').then(m => m.AiDashboardComponent)
   },
+  {
+    path: 'lms-author',
+    loadComponent: () => import('./lms-author/lms-author.component').then(m => m.LmsAuthorComponent)
+  },
+  {
+    path: 'lms-learner',
+    loadComponent: () => import('./lms-learner/lms-learner.component').then(m => m.LmsLearnerComponent)
+  },
   { path: '', redirectTo: 'onboard', pathMatch: 'full' },
 ];
