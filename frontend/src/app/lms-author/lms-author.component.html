@@ -1,0 +1,32 @@
+<div class="glass-dashboard">
+  <h2>LMS Authoring Dashboard</h2>
+
+  <div class="author-controls">
+    <h3>Generate AI Quiz for Lesson</h3>
+    <div class="input-group">
+      <label>Lesson ID:</label>
+      <input type="text" [ngModel]="lessonId()" (ngModelChange)="lessonId.set($event)" />
+    </div>
+
+    <button (click)="generateAiQuiz()" [disabled]="isGenerating() || !lessonId()">
+      {{ isGenerating() ? 'Generating...' : 'Generate AI Quiz' }}
+    </button>
+  </div>
+
+  <div class="progress-container" *ngIf="isGenerating() || progress() === 100">
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" [style.width]="progress() + '%'"></div>
+    </div>
+    <p>{{ progress() }}%</p>
+  </div>
+
+  <div class="quiz-preview" *ngIf="quizData()">
+    <h3>{{ quizData().title }}</h3>
+    <div *ngFor="let q of quizData().questions; let i = index">
+      <p><strong>Q{{ i + 1 }}:</strong> {{ q.text }}</p>
+      <ul>
+        <li *ngFor="let a of q.answers">{{ a }}</li>
+      </ul>
+    </div>
+  </div>
+</div>

@@ -43,3 +43,6 @@ class LessonResponse(BaseModel):
     video_url: Optional[str] = None
     sort_order: int
     model_config = ConfigDict(from_attributes=True)
+
+class QuizGenerateRequest(BaseModel):
+    lesson_id: str
