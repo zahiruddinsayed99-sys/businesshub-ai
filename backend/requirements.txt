@@ -11,3 +11,10 @@ structlog==24.1.0
 python-multipart==0.0.9
 PyJWT==2.8.0
 cryptography==42.0.0
+pytest-asyncio==1.4.0
+pytest-html==4.2.0
+pytest-cov==7.1.0
+httpx==0.28.1
+fakeredis==2.37.0
+stripe==10.6.0
+pgvector==0.3.2
