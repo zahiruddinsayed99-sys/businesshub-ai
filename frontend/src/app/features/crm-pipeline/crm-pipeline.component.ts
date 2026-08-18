@@ -4,11 +4,9 @@ import { CdkDragDrop, DragDropModule, moveItemInArray, transferArrayItem } from 
 import { CrmDealService } from './crm-deal.service';
 import { CrmAiService } from './crm-ai.service';
 import { CrmDeal } from './crm-deal.model';
-import { catchError } from 'rxjs/operators';
-import { of, Subject, Subscription, timer } from 'rxjs';
-import { debounceTime, switchMap, takeWhile } from 'rxjs/operators';
+import { Subject, timer } from 'rxjs';
+import { switchMap, takeWhile, debounceTime } from 'rxjs/operators';
 
-// Mock auth service for getting current user
 @Component({
   selector: 'app-crm-pipeline',
   standalone: true,
@@ -21,23 +19,19 @@ export class CrmPipelineComponent implements OnInit {
   private crmService = inject(CrmDealService);
   private crmAiService = inject(CrmAiService);
 
-  // Use Signals for state management
   deals = signal<CrmDeal[]>([]);
   filterMode = signal<'ALL' | 'MINE'>('ALL');
-  currentUserId = signal<string | null>(null); // Ideally from an auth service
+  currentUserId = signal<string | null>(null);
   errorToast = signal<string | null>(null);
 
-  // Scoring state
-  scoringJobs = signal<Record<string, string>>({}); // deal_id -> job_id
+  scoringJobs = signal<Record<string, string>>({});
 
-  // Follow-up draft state
   draftModalVisible = signal<boolean>(false);
   draftContent = signal<string>('');
   draftLoading = signal<boolean>(false);
 
   columns = ['LEAD', 'QUALIFIED', 'PROPOSAL', 'WON', 'LOST'];
 
-  // Computed signal to filter deals based on toggle
   filteredDeals = computed(() => {
     const all = this.deals();
     const mode = this.filterMode();
@@ -51,12 +45,12 @@ export class CrmPipelineComponent implements OnInit {
 
   ngOnInit() {
     this.stageUpdateSubject.pipe(
-      debounceTime(500)
+      debounceTime(300)
     ).subscribe(({ deal, newStage, oldStage }) => {
       this.crmService.updateDealStage(deal.id, newStage).subscribe({
         error: (err) => {
           console.error(err);
-          // Rollback on failure
+          // Rollback on failure (Optimistic UI fallback)
           this.deals.update(deals => {
             return deals.map(d =>
               d.id === deal.id ? { ...d, stage: oldStage } : d
@@ -66,13 +60,11 @@ export class CrmPipelineComponent implements OnInit {
         }
       });
     });
-    // In a real app, we'd get this from a real Auth service
-    const me = localStorage.getItem('user_id'); // Just an example
+
+    const me = localStorage.getItem('user_id');
     if (me) {
       this.currentUserId.set(me);
     } else {
-      // Fetch /api/v1/auth/me here to get user ID if needed,
-      // but for testing we can assume it works if we have it in memory somewhere
       fetch('/api/v1/auth/me').then(r => r.json()).then(data => {
         if (data.user_id) this.currentUserId.set(data.user_id);
       }).catch(e => console.error(e));
@@ -97,25 +89,24 @@ export class CrmPipelineComponent implements OnInit {
 
   drop(event: CdkDragDrop<CrmDeal[]>, newStage: string) {
     if (event.previousContainer === event.container) {
-      // Reordering in same column (optional)
       const list = event.container.data;
       moveItemInArray(list, event.previousIndex, event.currentIndex);
     } else {
       const deal = event.previousContainer.data[event.previousIndex];
       const oldStage = deal.stage;
 
-      // Optimistic update
+      // Optimistic update: instantly move the deal locally
       this.deals.update(deals => {
         return deals.map(d =>
           d.id === deal.id ? { ...d, stage: newStage } : d
         );
       });
 
-      // API Call with debounce/immediate
+      // API Call execution
       this.stageUpdateSubject.next({ deal, newStage, oldStage });
-      this.showErrorToast("Failed to update deal stage. Rolled back.");
     }
-  };
+  }
+
   showErrorToast(msg: string) {
     this.errorToast.set(msg);
     setTimeout(() => this.errorToast.set(null), 3000);
@@ -141,8 +132,6 @@ export class CrmPipelineComponent implements OnInit {
     ).subscribe({
       next: (res) => {
         if (res.status === 'SUCCESS' && res.result?.status === 'completed') {
-          // Re-fetch deals or update signal directly if API returned full score.
-          // The celery task just updates the DB, so we reload deals to see changes
           this.loadDeals();
           this.scoringJobs.update(jobs => {
             const newJobs = { ...jobs };
@@ -198,4 +187,3 @@ export class CrmPipelineComponent implements OnInit {
     });
   }
 }
-
