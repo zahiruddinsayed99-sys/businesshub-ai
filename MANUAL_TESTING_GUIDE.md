@@ -23,14 +23,14 @@ This guide provides explicit, step-by-step instructions for testing the core mod
   1. Open Postman or Swagger.
   2. Make a `POST` request to `/auth/onboard`.
   3. Provide the Test Data in the JSON body.
-* **Expected Result:**
-  * HTTP 201 Created.
-  * The response body contains `organization_id`, `user_id`, and `access_token`.
+* **Expected Result:** 
+  * HTTP 201 Created. 
+  * The response body contains `organization_id`, `user_id`, and `access_token`. 
   * A `refresh_token` cookie is set (HttpOnly, SameSite=strict).
 
 #### TC-AUTH-002: User Login
 * **Objective:** Verify a user can authenticate and receive a JWT.
-* **Test Data:**
+* **Test Data:** 
   * `email`: `admin@acme.com`
   * `password`: `SecurePass123!`
 * **Step-by-Step Actions:**
@@ -216,7 +216,7 @@ This guide provides explicit, step-by-step instructions for testing the core mod
   * AI Credits Used should increment by 4 in the DB.
 
 ### Edge Cases & Negative Testing
-* **Atomic AI Credit Limit Reached:**
+* **Atomic AI Credit Limit Reached:** 
   1. Ensure Organization is on FREE tier.
   2. Manually set `ai_credits_used` in the database to 98.
   3. Execute `POST /crm/deals/<deal_id>/ai-score` (which costs 4 credits).
