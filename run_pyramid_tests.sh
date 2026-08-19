@@ -2,12 +2,24 @@
 set -e
 
 echo "======================================"
-echo "Executing Tier 1 Unit Tests (Backend)..."
+echo "Pre-flight Health Checks..."
 echo "======================================"
-cd backend
-source .venv/bin/activate
-pytest tests/test_tier1_unit.py
-cd ..
+
+# Check PostgreSQL on port 5432 using bash built-in /dev/tcp
+if ! (echo > /dev/tcp/localhost/5432) >/dev/null 2>&1; then
+  echo "ERROR: PostgreSQL is not running on port 5432. Please start the database."
+  exit 1
+else
+  echo "✓ PostgreSQL is running."
+fi
+
+# Check Redis on port 6379 using bash built-in /dev/tcp
+if ! (echo > /dev/tcp/localhost/6379) >/dev/null 2>&1; then
+  echo "ERROR: Redis is not running on port 6379. Please start the cache server."
+  exit 1
+else
+  echo "✓ Redis is running."
+fi
 
 echo "======================================"
 echo "Executing Tier 1 Unit Tests (Frontend)..."
@@ -17,12 +29,12 @@ npx ng test --watch=false --browsers=ChromeHeadless --include=src/app/tier1.spec
 cd ..
 
 echo "======================================"
-echo "Executing Tier 2 Integration Tests..."
+echo "Executing Tier 1 and Tier 2 Tests (Backend)..."
 echo "======================================"
 cd backend
 source .venv/bin/activate
 export DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5432/app-db"
-pytest tests/test_tier2_api.py
+pytest tests/
 cd ..
 
 echo "======================================"
