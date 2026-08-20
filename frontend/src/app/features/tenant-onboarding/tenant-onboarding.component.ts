@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { TenantService, TenantOnboardResponse } from '../../core/services/tenant.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-tenant-onboarding',
@@ -24,8 +25,9 @@ export class TenantOnboardingComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private tenantService: TenantService
-  ) {}
+    private tenantService: TenantService,
+    private router: Router
+  ) { }
 
   ngOnInit(): void {
     this.onboardingForm = this.fb.group({
@@ -139,5 +141,15 @@ export class TenantOnboardingComponent implements OnInit {
         }
       },
     });
+  }
+  goToBilling() {
+    if (this.onboardingSuccess && this.onboardingSuccess.access_token) {
+      // 1. Save the token so the app knows the user is logged in
+      localStorage.setItem('access_token', this.onboardingSuccess.access_token);
+      // 2. Clear the success state
+      this.onboardingSuccess = null;
+      // 3. Navigate to the billing dashboard
+      this.router.navigate(['/billing']);
+    }
   }
 }

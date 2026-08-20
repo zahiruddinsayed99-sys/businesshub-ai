@@ -1,14 +1,15 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class CrmAiService {
   private http = inject(HttpClient);
-  private apiUrl = '/api/v1/crm/deals';
-  private jobsUrl = '/api/v1/ai/jobs';
+  private apiUrl = environment.apiUrl + '/crm/deals';
+  private jobsUrl = environment.apiUrl + '/ai/jobs';
 
   scoreDeal(dealId: string): Observable<{ job_id: string }> {
     return this.http.post<{ job_id: string }>(`${this.apiUrl}/${dealId}/ai-score`, {});
