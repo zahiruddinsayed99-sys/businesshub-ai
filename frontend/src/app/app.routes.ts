@@ -32,6 +32,10 @@ export const routes: Routes = [
         path: 'billing',
         loadComponent: () => import('./features/billing-dashboard/billing-dashboard.component').then(m => m.BillingDashboardComponent)
       },
+      {
+        path: 'settings',
+        loadComponent: () => import('./features/settings/workspace-settings/workspace-settings').then(m => m.WorkspaceSettings)
+      },
       { path: '', redirectTo: 'crm', pathMatch: 'full' }
     ]
   },
