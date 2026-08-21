@@ -32,7 +32,7 @@ describe('Tier 1 Unit Tests (Frontend)', () => {
         expect(res.stage).toBe('QUALIFIED');
       });
 
-      const req = httpTestingController.expectOne(`/api/v1/crm/deals/${dealId}/stage`);
+      const req = httpTestingController.expectOne(`http://localhost:8000/api/v1/crm/deals/${dealId}/stage`);
       expect(req.request.method).toEqual('PATCH');
       expect(req.request.body).toEqual({ stage: newStage });
 
@@ -55,7 +55,7 @@ describe('Tier 1 Unit Tests (Frontend)', () => {
         }
       });
 
-      const req = httpTestingController.expectOne('/api/v1/crm/deals/123/stage');
+      const req = httpTestingController.expectOne('http://localhost:8000/api/v1/crm/deals/123/stage');
       req.flush(apiErrorResponse, { status: 422, statusText: 'Unprocessable Entity' });
     });
   });

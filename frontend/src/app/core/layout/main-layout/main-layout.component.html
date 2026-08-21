@@ -1,0 +1,33 @@
+<div class="app-layout">
+  <!-- Side Menu -->
+  <aside class="sidebar">
+    <div class="logo">
+      <h3>BusinessHub AI</h3>
+    </div>
+    <nav class="nav-menu">
+      <a routerLink="/crm" routerLinkActive="active" class="nav-item">CRM</a>
+      <a routerLink="/ai" routerLinkActive="active" class="nav-item">AI Platform</a>
+      <a routerLink="/lms-author" routerLinkActive="active" class="nav-item">LMS Author</a>
+      <a routerLink="/lms-learner" routerLinkActive="active" class="nav-item">LMS Learner</a>
+      <a routerLink="/billing" routerLinkActive="active" class="nav-item">Billing</a>
+      <a routerLink="/settings" routerLinkActive="active" class="nav-item">Settings</a>
+    </nav>
+  </aside>
+
+  <!-- Main Content Area -->
+  <div class="main-content">
+    <!-- Top Bar -->
+    <header class="top-bar">
+      <div class="spacer"></div>
+      <div class="user-profile">
+        <span class="user-name">Welcome, {{ userName }}</span>
+        <button (click)="logout()" class="btn-logout">Logout</button>
+      </div>
+    </header>
+
+    <!-- Page Content Wrapper -->
+    <main class="page-content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>
