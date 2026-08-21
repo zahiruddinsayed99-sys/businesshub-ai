@@ -1,6 +1,12 @@
-# BusinessHub AI - Developer Guide
+# BusinessHub AI - End-to-End Developer Guide
 
-This document serves as a comprehensive reference for onboarding, daily development, infrastructure management, and production deployments for the BusinessHub AI platform.
+This document serves as a comprehensive reference for onboarding, daily development, infrastructure management, and production deployments for the entire **BusinessHub AI** platform. It covers all core modules:
+- **Module 0:** Core Platform Foundation/Auth
+- **Module 1:** Billing & Indian Market Compliance
+- **Module 2:** CRM Engine
+- **Module 4:** LMS
+- **Module 5:** Centralised AI Platform & RAG
+- *(Note: Module 3 - E-Commerce is currently incomplete)*
 
 ---
 
