@@ -5,12 +5,13 @@ import { provideMarkdown } from 'ngx-markdown';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
+import { billingInterceptor } from './core/interceptors/billing.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
-    provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
+    provideHttpClient(withFetch(), withInterceptors([authInterceptor, billingInterceptor])),
     provideMarkdown(),
   ]
 };
