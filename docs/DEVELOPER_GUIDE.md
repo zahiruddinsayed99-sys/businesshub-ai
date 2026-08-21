@@ -33,7 +33,7 @@ Before you start, ensure you have the following installed on your machine:
    docker compose up -d db redis
    ```
 
-3. **Backend Setup:**
+3. **Backend Setup & API Keys (Infrastructure):**
    ```bash
    cd backend
    # create your virtual environment (e.g. using virtualenv or venv)
@@ -42,8 +42,15 @@ Before you start, ensure you have the following installed on your machine:
 
    # Setup environment variables
    cp .env.example .env
-   # Edit .env with your local database URL: postgresql+asyncpg://postgres:postgres@localhost:5432/app-db
+   ```
+   **Important: Configuring your `.env` file**
+   Open the `.env` file in your editor. You must configure the following infrastructure secrets:
+   - `DATABASE_URL`: Set this to your local Postgres database (e.g., `postgresql+asyncpg://postgres:postgres@localhost:5432/app-db`).
+   - `OPENAI_API_KEY`: Required for Module 5 (AI/RAG) and Module 4 (AI Quiz Generation). Get this from your OpenAI developer dashboard.
+   - `STRIPE_SECRET_KEY`: Required for Module 1 (Billing). Get this from your Stripe test dashboard.
+   - `JWT_PRIVATE_KEY_PATH` & `JWT_PUBLIC_KEY_PATH`: (Optional for local dev) Path to your RSA keys for auth. If left blank, the app will dynamically generate temporary keys on startup.
 
+   ```bash
    # Run database migrations
    alembic upgrade head
    ```
@@ -112,7 +119,7 @@ The platform utilizes Postgres (with pgvector) for storage and Redis for caching
 - [ ] **Tests Pass:** All backend tests (`pytest`) and frontend tests (`ng test`) pass successfully.
 - [ ] **Linting & Formatting:** No linting errors or massive bundle size warnings.
 - [ ] **Migrations Reversible:** Confirm `downgrade()` functions in new Alembic migrations use `op.drop_table()` in reverse dependency order.
-- [ ] **Environment Variables:** Verify staging/prod `.env` files are populated (especially `DATABASE_URL`, `JWT_PRIVATE_KEY_PATH`, and secure secrets).
+- [ ] **Environment Variables:** Verify staging/prod `.env` files are populated (especially `DATABASE_URL`, `OPENAI_API_KEY`, `STRIPE_SECRET_KEY`, `JWT_PRIVATE_KEY_PATH`, and secure secrets).
 - [ ] **Build Artifacts:** Frontend compiles successfully (`npm run build --prod`).
 
 ### Deployment Execution
