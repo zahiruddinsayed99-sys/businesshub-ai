@@ -1,0 +1,25 @@
+Component HMR has been enabled, see https://angular.dev/hmr for more info.
+❯ Building...
+✔ Building...
+Initial chunk files | Names                       |  Raw size
+main.js             | main                        | 131.79 kB |
+polyfills.js        | polyfills                   |  89.77 kB |
+chunk-CZJLB7T5.js   | -                           |   1.08 kB |
+chunk-FPIZOZ5C.js   | -                           | 190 bytes |
+styles.css          | styles                      |  96 bytes |
+
+                    | Initial total               | 222.92 kB
+
+Lazy chunk files    | Names                       |  Raw size
+chunk-XFJ3MUCN.js   | lms-author-component        |  22.22 kB |
+chunk-57VT7Y23.js   | workspace-settings          |  20.26 kB |
+chunk-DZV3KJII.js   | lms-learner-component       |  19.65 kB |
+chunk-ICA5RR3A.js   | ai-dashboard-component      |  17.64 kB |
+chunk-UVQUAPUY.js   | billing-dashboard-component |  16.54 kB |
+chunk-GZRYTKIT.js   | tenant-onboard-component    |  11.93 kB |
+
+Application bundle generation complete. [3.984 seconds]
+
+Watch mode enabled. Watching for file changes...
+NOTE: Raw file sizes do not reflect development server per-request transformations.
+  ➜  Local:   http://127.0.0.1:4200/

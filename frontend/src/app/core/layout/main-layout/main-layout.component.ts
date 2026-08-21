@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectionStrategy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -8,21 +8,46 @@ import { HttpClient } from '@angular/common/http';
   standalone: true,
   imports: [CommonModule, RouterModule],
   templateUrl: './main-layout.component.html',
-  styleUrls: ['./main-layout.component.scss']
+  styleUrls: ['./main-layout.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class MainLayoutComponent {
+export class MainLayoutComponent implements OnInit {
   private http = inject(HttpClient);
   private router = inject(Router);
 
-  userName = 'User'; // Placeholder, could be fetched from API/token
+  userName = signal<string>('User');
+  userRole = signal<string>('');
+
+  ngOnInit() {
+    this.http.get<any>('/api/v1/auth/me').subscribe({
+      next: (res) => {
+        this.userName.set(res.email); // or full_name if available
+        this.userRole.set(res.role);
+      },
+      error: () => {
+        // Handle error by parsing JWT as fallback
+        let token = null;
+        try {
+          if (typeof localStorage !== 'undefined') {
+            token = localStorage.getItem('access_token');
+          }
+        } catch (e) {}
+
+        if (token) {
+          try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            this.userRole.set(payload.role);
+            this.userName.set(payload.email || 'User');
+          } catch (e) {}
+        }
+      }
+    });
+  }
 
   logout() {
     this.http.post('/api/v1/auth/logout', {}).subscribe({
       next: () => this.handleLogoutSuccess(),
-      error: () => {
-        // Even if the server fails, clear local state
-        this.handleLogoutSuccess();
-      }
+      error: () => this.handleLogoutSuccess()
     });
   }
 
@@ -31,9 +56,7 @@ export class MainLayoutComponent {
       if (typeof localStorage !== 'undefined') {
         localStorage.removeItem('access_token');
       }
-    } catch (e) {
-      console.error('Error removing token from localStorage', e);
-    }
+    } catch (e) {}
     this.router.navigate(['/login']);
   }
 }
