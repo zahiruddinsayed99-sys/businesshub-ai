@@ -7,10 +7,11 @@
     <nav class="nav-menu">
       <a routerLink="/crm" routerLinkActive="active" class="nav-item">CRM</a>
       <a routerLink="/ai" routerLinkActive="active" class="nav-item">AI Platform</a>
-      <a routerLink="/lms-author" routerLinkActive="active" class="nav-item">LMS Author</a>
       <a routerLink="/lms-learner" routerLinkActive="active" class="nav-item">LMS Learner</a>
-      <a routerLink="/billing" routerLinkActive="active" class="nav-item">Billing</a>
-      <a routerLink="/settings" routerLinkActive="active" class="nav-item">Settings</a>
+      <a routerLink="/lms-author" *ngIf="userRole() === 'TENANT_OWNER' || userRole() === 'TENANT_ADMIN' || userRole() === 'LMS_MANAGER' || userRole() === 'SUPER_ADMIN'" routerLinkActive="active" class="nav-item">LMS Author</a>
+      <a routerLink="/billing" *ngIf="userRole() === 'TENANT_OWNER' || userRole() === 'TENANT_ADMIN' || userRole() === 'SUPER_ADMIN'" routerLinkActive="active" class="nav-item">Billing</a>
+      <a routerLink="/settings" *ngIf="userRole() === 'TENANT_OWNER' || userRole() === 'TENANT_ADMIN' || userRole() === 'SUPER_ADMIN'" routerLinkActive="active" class="nav-item">Settings</a>
+      <a routerLink="/admin/tenant" *ngIf="userRole() === 'SUPER_ADMIN'" routerLinkActive="active" class="nav-item">Tenant Manager</a>
     </nav>
   </aside>
 
@@ -20,7 +21,7 @@
     <header class="top-bar">
       <div class="spacer"></div>
       <div class="user-profile">
-        <span class="user-name">Welcome, {{ userName }}</span>
+        <span class="user-name">Welcome, {{ userName() }}</span>
         <button (click)="logout()" class="btn-logout">Logout</button>
       </div>
     </header>

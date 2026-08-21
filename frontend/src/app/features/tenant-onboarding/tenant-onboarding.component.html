@@ -13,8 +13,14 @@
       <p class="subtitle">Set up your multi-tenant organization & administrator workspace</p>
     </div>
 
+    <!-- No Invite Code State -->
+    <div *ngIf="!inviteCode" class="invite-error-box" style="text-align: center; padding: 2rem;">
+      <h2>Access Denied</h2>
+      <p>Signup is invite-only. Contact sales.</p>
+    </div>
+
     <!-- Success State -->
-    <div *ngIf="onboardingSuccess" class="success-box">
+    <div *ngIf="inviteCode && onboardingSuccess" class="success-box">
       <div class="success-icon">✓</div>
       <h2>Organization Provisioned!</h2>
       <p class="success-desc">Your tenant workspace has been created successfully and RS256 credentials issued.</p>
@@ -49,7 +55,7 @@
     </div>
 
     <!-- Form State -->
-    <form *ngIf="!onboardingSuccess" [formGroup]="onboardingForm" (ngSubmit)="onSubmit()">
+    <form *ngIf="inviteCode && !onboardingSuccess" [formGroup]="onboardingForm" (ngSubmit)="onSubmit()">
 
       <div *ngIf="errorMessage" class="error-banner">
         ⚠️ {{ errorMessage }}

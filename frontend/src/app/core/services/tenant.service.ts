@@ -9,6 +9,7 @@ export interface TenantOnboardRequest {
   admin_email: string;
   admin_password: string;
   admin_full_name: string;
+  invite_code?: string;
 }
 
 export interface TenantOnboardResponse {

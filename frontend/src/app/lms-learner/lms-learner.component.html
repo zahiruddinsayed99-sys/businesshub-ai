@@ -1,9 +1,17 @@
 <div class="glass-dashboard">
   <h2>LMS Learner Dashboard</h2>
 
-  <div class="enrollment-card">
-    <h3>{{ activeEnrollment().courseTitle }}</h3>
+  <div class="courses-list" *ngIf="!activeEnrollment()">
+    <h3>Available Courses</h3>
+    <div class="course-card" *ngFor="let c of availableCourses()">
+      <h4>{{ c.title }}</h4>
+      <p>{{ c.description }}</p>
+      <button (click)="enrollCourse(c.id)">Enroll</button>
+    </div>
+  </div>
 
+  <div class="enrollment-card" *ngIf="activeEnrollment()">
+    <h3>{{ activeEnrollment().courseTitle }}</h3>
     <div class="progress-meter">
       <div class="meter-fill" [style.width]="activeEnrollment().progressPercent + '%'"></div>
     </div>
@@ -15,10 +23,31 @@
     </div>
   </div>
 
-  <div class="lesson-player">
+  <div class="lesson-player" *ngIf="lessonMarkdown()">
     <h3>Current Lesson</h3>
     <div class="markdown-container">
       <markdown [data]="lessonMarkdown()"></markdown>
     </div>
+    <button (click)="takeQuiz()">Take Quiz</button>
+  </div>
+
+  <div class="quiz-player" *ngIf="quizData()">
+    <h3>Quiz</h3>
+    <div *ngFor="let q of quizData().questions; let i = index">
+      <p><strong>Q{{ i + 1 }}:</strong> {{ q.text }}</p>
+      <div *ngFor="let a of q.answers; let j = index">
+        <label>
+          <input type="radio" [name]="'q' + i" [value]="a" (change)="selectAnswer(i, a)" />
+          {{ a }}
+        </label>
+      </div>
+    </div>
+    <button (click)="submitQuiz()">Submit Answers</button>
+  </div>
+
+  <div class="quiz-result" *ngIf="quizResult()">
+    <h1 *ngIf="quizResult().passed" style="color: green;">PASS</h1>
+    <h1 *ngIf="!quizResult().passed" style="color: red;">FAIL</h1>
+    <p>Score: {{ quizResult().score }}</p>
   </div>
 </div>

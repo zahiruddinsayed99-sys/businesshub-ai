@@ -4,7 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { TenantService, TenantOnboardResponse } from '../../core/services/tenant.service';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-tenant-onboarding',
@@ -19,6 +19,8 @@ export class TenantOnboardingComponent implements OnInit {
   errorMessage: string | null = null;
   onboardingSuccess: TenantOnboardResponse | null = null;
 
+  inviteCode: string | null = null;
+
   isCheckingSlug = false;
   isSlugAvailable: boolean | null = null;
   slugSubject = new Subject<string>();
@@ -26,10 +28,15 @@ export class TenantOnboardingComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private tenantService: TenantService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) { }
 
   ngOnInit(): void {
+    this.route.queryParams.subscribe(params => {
+      this.inviteCode = params['code'] || null;
+    });
+
     this.onboardingForm = this.fb.group({
       org_name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(255)]],
       slug: ['', [Validators.pattern('^[a-z0-9]+(?:-[a-z0-9]+)*$')]],
@@ -110,7 +117,7 @@ export class TenantOnboardingComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.onboardingForm.invalid) {
+    if (this.onboardingForm.invalid || !this.inviteCode) {
       this.onboardingForm.markAllAsTouched();
       return;
     }
@@ -125,6 +132,7 @@ export class TenantOnboardingComponent implements OnInit {
       admin_email: formValues.admin_email,
       admin_password: formValues.admin_password,
       admin_full_name: formValues.admin_full_name,
+      invite_code: this.inviteCode
     };
 
     this.tenantService.onboardTenant(payload).subscribe({

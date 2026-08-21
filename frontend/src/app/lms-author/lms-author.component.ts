@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { interval, Subscription } from 'rxjs';
-import { switchMap, takeWhile, filter } from 'rxjs/operators';
+import { switchMap, takeWhile } from 'rxjs/operators';
 
 @Component({
   selector: 'app-lms-author',
@@ -16,12 +16,70 @@ import { switchMap, takeWhile, filter } from 'rxjs/operators';
 export class LmsAuthorComponent {
   private http = inject(HttpClient);
 
-  lessonId = signal<string>('mock-lesson-id-123');
+  // Course variables
+  courseTitle = signal<string>('');
+  courseDescription = signal<string>('');
+  courseId = signal<string>('');
+
+  // Module variables
+  moduleTitle = signal<string>('');
+  moduleDescription = signal<string>('');
+  moduleId = signal<string>('');
+
+  // Lesson variables
+  lessonTitle = signal<string>('');
+  lessonContentBody = signal<string>('');
+  lessonId = signal<string>('');
+
+  // Quiz generation
   isGenerating = signal<boolean>(false);
   progress = signal<number>(0);
   quizData = signal<any>(null);
 
   private pollingSub?: Subscription;
+
+  createCourse() {
+    this.http.post<any>('/api/v1/lms/courses', {
+      title: this.courseTitle(),
+      description: this.courseDescription()
+    }).subscribe({
+      next: (res) => {
+        this.courseId.set(res.id);
+        alert('Course created successfully');
+      },
+      error: (err) => console.error('Failed to create course:', err)
+    });
+  }
+
+  createModule() {
+    if (!this.courseId()) return;
+    this.http.post<any>(`/api/v1/lms/courses/${this.courseId()}/modules`, {
+      title: this.moduleTitle(),
+      description: this.moduleDescription(),
+      order_index: 1
+    }).subscribe({
+      next: (res) => {
+        this.moduleId.set(res.id);
+        alert('Module created successfully');
+      },
+      error: (err) => console.error('Failed to create module:', err)
+    });
+  }
+
+  createLesson() {
+    if (!this.moduleId()) return;
+    this.http.post<any>(`/api/v1/lms/modules/${this.moduleId()}/lessons`, {
+      title: this.lessonTitle(),
+      content_body: this.lessonContentBody(),
+      order_index: 1
+    }).subscribe({
+      next: (res) => {
+        this.lessonId.set(res.id);
+        alert('Lesson created successfully');
+      },
+      error: (err) => console.error('Failed to create lesson:', err)
+    });
+  }
 
   generateAiQuiz() {
     if (!this.lessonId() || this.isGenerating()) return;
@@ -60,8 +118,7 @@ export class LmsAuthorComponent {
             }
           } else if (res.status === 'completed') {
             this.progress.set(100);
-            // Simulate getting the quiz form data back
-            this.quizData.set({
+            this.quizData.set(res.result || {
               title: "Generated Quiz",
               questions: [
                  { text: "Sample Question 1", answers: ["A", "B", "C"] }

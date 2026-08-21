@@ -1,0 +1,28 @@
+<div class="glass-dashboard">
+  <h2>Tenant Manager</h2>
+  <p>Create new company workspaces manually (Super Admin only)</p>
+
+  <div *ngIf="successMessage()" class="alert alert-success">
+    {{ successMessage() }}
+  </div>
+
+  <div *ngIf="errorMessage()" class="alert alert-danger">
+    {{ errorMessage() }}
+  </div>
+
+  <div class="admin-controls">
+    <div class="input-group">
+      <label>Company Name:</label>
+      <input type="text" [ngModel]="companyName()" (ngModelChange)="companyName.set($event)" placeholder="e.g. Acme Corp" />
+    </div>
+
+    <div class="input-group">
+      <label>Workspace Slug:</label>
+      <input type="text" [ngModel]="companySlug()" (ngModelChange)="companySlug.set($event)" placeholder="e.g. acme-corp" />
+    </div>
+
+    <button (click)="createTenant()" [disabled]="isSubmitting() || !companyName() || !companySlug()">
+      {{ isSubmitting() ? 'Creating...' : 'Create Workspace' }}
+    </button>
+  </div>
+</div>
