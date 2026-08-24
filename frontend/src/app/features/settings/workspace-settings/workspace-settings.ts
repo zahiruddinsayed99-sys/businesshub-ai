@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy, signal, inject } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-workspace-settings',
@@ -31,7 +32,7 @@ export class WorkspaceSettings {
   }
 
   loadCompanyDetails() {
-    this.http.get<any>('/api/v1/organizations/me').subscribe({
+    this.http.get<any>(`${environment.apiUrl}/organizations/me`).subscribe({
       next: (res) => {
         this.companyForm.patchValue({
           name: res.name || '',
@@ -47,7 +48,7 @@ export class WorkspaceSettings {
 
   saveCompanyDetails() {
     if (this.companyForm.valid) {
-      this.http.patch('/api/v1/organizations/me', this.companyForm.value).subscribe({
+      this.http.patch(`${environment.apiUrl}/organizations/me`, this.companyForm.value).subscribe({
         next: () => {
           this.showSuccessToast.set(true);
           setTimeout(() => this.showSuccessToast.set(false), 3000);
@@ -64,7 +65,7 @@ export class WorkspaceSettings {
       return;
     }
 
-    this.http.post<{token: string}>('/api/v1/organizations/invitations', { email: this.inviteEmail() }).subscribe({
+    this.http.post<{ token: string }>(`${environment.apiUrl}/organizations/invitations`, { email: this.inviteEmail() }).subscribe({
       next: (res) => {
         const fullUrl = `${window.location.origin}/invite/accept?token=${res.token}`;
         this.inviteLink.set(fullUrl);

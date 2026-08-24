@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-login',
@@ -20,7 +21,6 @@ export class LoginComponent {
     email: ['', [Validators.required, Validators.email]],
     password: ['', Validators.required]
   });
-
   loading = false;
   error = '';
 
@@ -34,7 +34,7 @@ export class LoginComponent {
 
     const val = this.loginForm.value;
 
-    this.http.post<{ access_token: string }>('/api/v1/auth/login', {
+    this.http.post<{ access_token: string }>(`${environment.apiUrl}/auth/login`, {
       email: val.email,
       password: val.password
     }).subscribe({

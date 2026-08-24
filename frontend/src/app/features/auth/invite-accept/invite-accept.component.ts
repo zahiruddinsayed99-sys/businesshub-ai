@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-invite-accept',
@@ -46,7 +47,7 @@ export class InviteAcceptComponent implements OnInit {
 
     const val = this.inviteForm.value;
 
-    this.http.post('/api/v1/auth/invite/accept', {
+    this.http.post(`${environment.apiUrl}/auth/invite/accept`, {
       token: this.token,
       full_name: val.full_name,
       password: val.password

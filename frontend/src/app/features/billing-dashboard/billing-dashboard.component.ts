@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy, signal, inject } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-billing-dashboard',
@@ -33,7 +34,7 @@ export class BillingDashboardComponent {
   }
 
   loadBillingInfo() {
-    this.http.get<any>('/api/v1/organizations/me').subscribe(res => {
+    this.http.get<any>(`${environment.apiUrl}/organizations/me`).subscribe(res => {
       this.subscriptionTier.set(res.subscription_tier || 'FREE');
       this.activePlanStatus.set(res.subscription_status || 'INACTIVE');
       this.creditsUsed.set(res.ai_credits_used || 0);
@@ -49,18 +50,18 @@ export class BillingDashboardComponent {
 
   saveGstin() {
     if (this.gstinForm.valid) {
-      this.http.patch('/api/v1/organizations/me', this.gstinForm.value).subscribe();
+      this.http.patch(`${environment.apiUrl}/organizations/me`, this.gstinForm.value).subscribe();
     }
   }
 
   onCheckout() {
-    this.http.post<{url: string}>('/api/v1/billing/checkout', {}).subscribe(res => {
+    this.http.post<{ url: string }>(`${environment.apiUrl}/billing/checkout`, {}).subscribe(res => {
       window.location.href = res.url;
     });
   }
 
   onCustomerPortal() {
-    this.http.post<{url: string}>('/api/v1/billing/portal', {}).subscribe(res => {
+    this.http.post<{ url: string }>(`${environment.apiUrl}/billing/portal`, {}).subscribe(res => {
       window.location.href = res.url;
     });
   }

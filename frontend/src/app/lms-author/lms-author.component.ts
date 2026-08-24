@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { interval, Subscription } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-lms-author',
@@ -39,7 +40,7 @@ export class LmsAuthorComponent {
   private pollingSub?: Subscription;
 
   createCourse() {
-    this.http.post<any>('/api/v1/lms/courses', {
+    this.http.post<any>(`${environment.apiUrl}/lms/courses`, {
       title: this.courseTitle(),
       description: this.courseDescription()
     }).subscribe({
@@ -53,7 +54,7 @@ export class LmsAuthorComponent {
 
   createModule() {
     if (!this.courseId()) return;
-    this.http.post<any>(`/api/v1/lms/courses/${this.courseId()}/modules`, {
+    this.http.post<any>(`${environment.apiUrl}/lms/courses/${this.courseId()}/modules`, {
       title: this.moduleTitle(),
       description: this.moduleDescription(),
       order_index: 1
@@ -68,7 +69,7 @@ export class LmsAuthorComponent {
 
   createLesson() {
     if (!this.moduleId()) return;
-    this.http.post<any>(`/api/v1/lms/modules/${this.moduleId()}/lessons`, {
+    this.http.post<any>(`${environment.apiUrl}/lms/modules/${this.moduleId()}/lessons`, {
       title: this.lessonTitle(),
       content_body: this.lessonContentBody(),
       order_index: 1
@@ -88,7 +89,7 @@ export class LmsAuthorComponent {
     this.progress.set(10);
     this.quizData.set(null);
 
-    this.http.post<{job_id: string}>('/api/v1/lms/quizzes/generate', {
+    this.http.post<{ job_id: string }>(`${environment.apiUrl}/lms/quizzes/generate`, {
       lesson_id: this.lessonId()
     }).subscribe({
       next: (res) => {
@@ -106,7 +107,7 @@ export class LmsAuthorComponent {
   private pollJob(jobId: string) {
     this.pollingSub = interval(3000)
       .pipe(
-        switchMap(() => this.http.get<any>(`/api/v1/ai/jobs/${jobId}`)),
+        switchMap(() => this.http.get<any>(`${environment.apiUrl}/ai/jobs/${jobId}`)),
         takeWhile(res => res.status !== 'completed' && res.status !== 'failed', true)
       )
       .subscribe({
@@ -121,7 +122,7 @@ export class LmsAuthorComponent {
             this.quizData.set(res.result || {
               title: "Generated Quiz",
               questions: [
-                 { text: "Sample Question 1", answers: ["A", "B", "C"] }
+                { text: "Sample Question 1", answers: ["A", "B", "C"] }
               ]
             });
             this.isGenerating.set(false);

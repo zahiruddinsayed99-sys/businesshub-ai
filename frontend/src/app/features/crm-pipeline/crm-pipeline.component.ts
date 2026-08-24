@@ -6,6 +6,7 @@ import { CrmAiService } from './crm-ai.service';
 import { CrmDeal } from './crm-deal.model';
 import { Subject, timer } from 'rxjs';
 import { switchMap, takeWhile, debounceTime } from 'rxjs/operators';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-crm-pipeline',
@@ -65,7 +66,7 @@ export class CrmPipelineComponent implements OnInit {
     if (me) {
       this.currentUserId.set(me);
     } else {
-      fetch('/api/v1/auth/me').then(r => r.json()).then(data => {
+      fetch(`${environment.apiUrl}/auth/me`).then(r => r.json()).then(data => {
         if (data.user_id) this.currentUserId.set(data.user_id);
       }).catch(e => console.error(e));
     }

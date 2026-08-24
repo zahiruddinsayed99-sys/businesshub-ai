@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { MarkdownModule } from 'ngx-markdown';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-lms-learner',
@@ -27,7 +28,7 @@ export class LmsLearnerComponent {
   quizResult = signal<any>(null);
 
   enrollCourse(courseId: string) {
-    this.http.post<any>('/api/v1/lms/enrollments', { course_id: courseId }).subscribe({
+    this.http.post<any>(`${environment.apiUrl}/lms/enrollments`, { course_id: courseId }).subscribe({
       next: (res) => {
         this.activeEnrollment.set({
           courseTitle: 'Advanced Angular Architecture',
@@ -82,7 +83,7 @@ console.log(mySignal());
       selected_option_id: this.selectedAnswers()[index]
     }));
 
-    this.http.post<any>('/api/v1/lms/quizzes/attempts', {
+    this.http.post<any>(`${environment.apiUrl}/lms/quizzes/attempts`, {
       quiz_id: this.quizData().id,
       responses: answersArray
     }).subscribe({

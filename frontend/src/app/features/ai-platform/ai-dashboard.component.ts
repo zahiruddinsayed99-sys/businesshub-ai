@@ -35,9 +35,8 @@ export class AiDashboardComponent implements OnDestroy {
     if (this.uploadForm.invalid) return;
 
     const payload = this.uploadForm.value;
-
     // Assume Tenant interceptor attaches auth and X-Organization-Id
-    this.http.post<{job_id: string}>(`${environment.apiUrl}/ai/documents/upload`, payload)
+    this.http.post<{ job_id: string }>(`${environment.apiUrl}/ai/documents/upload`, payload)
       .pipe(
         catchError(err => {
           console.error(err);
@@ -62,11 +61,11 @@ export class AiDashboardComponent implements OnDestroy {
 
     this.pollingSubscription = interval(2000)
       .pipe(
-        switchMap(() => this.http.get<{status: string, result: any}>(`${environment.apiUrl}/ai/jobs/${jobId}`)),
+        switchMap(() => this.http.get<{ status: string, result: any }>(`${environment.apiUrl}/ai/jobs/${jobId}`)),
         takeWhile(res => res.status !== 'SUCCESS' && res.status !== 'FAILURE', true),
         catchError(err => {
           console.error(err);
-          return of({status: 'FAILURE', result: null});
+          return of({ status: 'FAILURE', result: null });
         })
       )
       .subscribe(res => {

@@ -2,6 +2,7 @@ import { Component, inject, OnInit, ChangeDetectionStrategy, signal } from '@ang
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-main-layout',
@@ -19,7 +20,7 @@ export class MainLayoutComponent implements OnInit {
   userRole = signal<string>('');
 
   ngOnInit() {
-    this.http.get<any>('/api/v1/auth/me').subscribe({
+    this.http.get<any>(`${environment.apiUrl}/auth/me`).subscribe({
       next: (res) => {
         this.userName.set(res.email); // or full_name if available
         this.userRole.set(res.role);
@@ -31,21 +32,21 @@ export class MainLayoutComponent implements OnInit {
           if (typeof localStorage !== 'undefined') {
             token = localStorage.getItem('access_token');
           }
-        } catch (e) {}
+        } catch (e) { }
 
         if (token) {
           try {
             const payload = JSON.parse(atob(token.split('.')[1]));
             this.userRole.set(payload.role);
             this.userName.set(payload.email || 'User');
-          } catch (e) {}
+          } catch (e) { }
         }
       }
     });
   }
 
   logout() {
-    this.http.post('/api/v1/auth/logout', {}).subscribe({
+    this.http.post(`${environment.apiUrl}/auth/logout`, {}).subscribe({
       next: () => this.handleLogoutSuccess(),
       error: () => this.handleLogoutSuccess()
     });
@@ -56,7 +57,7 @@ export class MainLayoutComponent implements OnInit {
       if (typeof localStorage !== 'undefined') {
         localStorage.removeItem('access_token');
       }
-    } catch (e) {}
+    } catch (e) { }
     this.router.navigate(['/login']);
   }
 }

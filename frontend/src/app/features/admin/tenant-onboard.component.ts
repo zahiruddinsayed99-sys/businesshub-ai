@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-admin-tenant-onboard',
@@ -27,7 +28,7 @@ export class TenantOnboardComponent {
     this.successMessage.set(null);
     this.errorMessage.set(null);
 
-    this.http.post<any>('/api/v1/tenant/onboard', {
+    this.http.post<any>(`${environment.apiUrl}/tenant/onboard`, {
       org_name: this.companyName(),
       slug: this.companySlug(),
       // Mock admin details as the issue says "System make new workspace without making new user."
