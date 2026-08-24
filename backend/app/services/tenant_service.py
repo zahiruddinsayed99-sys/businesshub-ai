@@ -137,7 +137,7 @@ class TenantService:
         payload: TenantOnboardRequest,
     ) -> TenantOnboardResponse:
         org, user_id_str, access_token, _, expires_in = await self.onboard_tenant_internal(
-            db=db, redis=redis, response=response, payload=payload, role="ADMIN"
+            db=db, redis=redis, response=response, payload=payload, role="TENANT_OWNER"
         )
         return TenantOnboardResponse(
             organization_id=org.id,
