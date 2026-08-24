@@ -154,6 +154,9 @@ export class TenantOnboardingComponent implements OnInit {
     if (this.onboardingSuccess && this.onboardingSuccess.access_token) {
       // 1. Save the token so the app knows the user is logged in
       localStorage.setItem('access_token', this.onboardingSuccess.access_token);
+      if (this.onboardingSuccess.organization_id) {
+        localStorage.setItem('organization_id', this.onboardingSuccess.organization_id);
+      }
       // 2. Clear the success state
       this.onboardingSuccess = null;
       // 3. Navigate to the billing dashboard

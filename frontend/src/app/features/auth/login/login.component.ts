@@ -34,7 +34,7 @@ export class LoginComponent {
 
     const val = this.loginForm.value;
 
-    this.http.post<{ access_token: string }>(`${environment.apiUrl}/auth/login`, {
+    this.http.post<{ access_token: string, organization_id?: string }>(`${environment.apiUrl}/auth/login`, {
       email: val.email,
       password: val.password
     }).subscribe({
@@ -42,6 +42,9 @@ export class LoginComponent {
         try {
           if (typeof localStorage !== 'undefined') {
             localStorage.setItem('access_token', res.access_token);
+            if (res.organization_id) {
+              localStorage.setItem('organization_id', res.organization_id);
+            }
           }
         } catch (e) {
           console.error('Error setting localStorage', e);

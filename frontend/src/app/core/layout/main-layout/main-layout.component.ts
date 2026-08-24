@@ -56,6 +56,8 @@ export class MainLayoutComponent implements OnInit {
     try {
       if (typeof localStorage !== 'undefined') {
         localStorage.removeItem('access_token');
+        localStorage.removeItem('organization_id');
+        localStorage.removeItem('user_id');
       }
     } catch (e) { }
     this.router.navigate(['/login']);
