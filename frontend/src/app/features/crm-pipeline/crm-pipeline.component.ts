@@ -1,4 +1,5 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { CdkDragDrop, DragDropModule, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { CrmDealService } from './crm-deal.service';
@@ -19,6 +20,7 @@ export class CrmPipelineComponent implements OnInit {
   private stageUpdateSubject = new Subject<{ deal: CrmDeal, newStage: string, oldStage: string }>();
   private crmService = inject(CrmDealService);
   private crmAiService = inject(CrmAiService);
+  private http = inject(HttpClient);
 
   deals = signal<CrmDeal[]>([]);
   filterMode = signal<'ALL' | 'MINE'>('ALL');
@@ -65,12 +67,26 @@ export class CrmPipelineComponent implements OnInit {
     const me = localStorage.getItem('user_id');
     if (me) {
       this.currentUserId.set(me);
+      this.loadDeals();
     } else {
-      fetch(`${environment.apiUrl}/auth/me`).then(r => r.json()).then(data => {
-        if (data.user_id) this.currentUserId.set(data.user_id);
-      }).catch(e => console.error(e));
+      this.http.get<any>(`${environment.apiUrl}/auth/me`).subscribe({
+        next: (data) => {
+          if (data.user_id) {
+            this.currentUserId.set(data.user_id);
+            try {
+              if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('user_id', data.user_id);
+              }
+            } catch (e) {}
+          }
+          this.loadDeals();
+        },
+        error: (e) => {
+          console.error(e);
+          this.loadDeals(); // Try anyway, let it fail cleanly
+        }
+      });
     }
-    this.loadDeals();
   }
 
   loadDeals() {
