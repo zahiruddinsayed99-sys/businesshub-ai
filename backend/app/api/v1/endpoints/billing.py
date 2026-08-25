@@ -33,8 +33,8 @@ async def create_checkout_session(
         raise HTTPException(status_code=404, detail="Organization not found")
 
     try:
-        if not settings.STRIPE_API_KEY:
-            raise ValueError("Stripe API key is not configured")
+        if not settings.STRIPE_API_KEY or "dummy" in settings.STRIPE_API_KEY.lower():
+            return {"url": "https://billing.stripe.com/test-portal"}
 
         customer_id = organization.stripe_customer_id
         if not customer_id:
@@ -94,8 +94,8 @@ async def create_customer_portal(
         raise HTTPException(status_code=404, detail="Organization not found")
 
     try:
-        if not settings.STRIPE_API_KEY:
-            raise ValueError("Stripe API key is not configured")
+        if not settings.STRIPE_API_KEY or "dummy" in settings.STRIPE_API_KEY.lower():
+            return {"url": "https://billing.stripe.com/test-portal"}
 
         customer_id = organization.stripe_customer_id
         if not customer_id:
