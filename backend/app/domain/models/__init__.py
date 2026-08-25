@@ -6,6 +6,7 @@ from app.domain.models.invitation import Invitation
 from app.domain.models.contact import Contact
 from app.domain.models.crm_deal import CrmDeal
 from app.domain.models.organization_document import OrganizationDocument
+from app.domain.models.ai_job import AiJob
 
 __all__ = [
     "Base",
@@ -17,6 +18,7 @@ __all__ = [
     "Contact",
     "CrmDeal",
     "OrganizationDocument",
+    "AiJob",
 ]
 from app.domain.models.lms import Course, CourseModule, Lesson, CourseEnrollment, LessonProgress, Quiz, QuizQuestion, QuizAnswer, QuizAttempt, QuizResponse
 
