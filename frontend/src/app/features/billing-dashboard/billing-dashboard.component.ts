@@ -70,14 +70,22 @@ export class BillingDashboardComponent {
   }
 
   onCheckout() {
-    this.http.post<{ url: string }>(`${environment.apiUrl}/billing/checkout`, {}).subscribe(res => {
-      window.location.href = res.url;
+    this.http.post<{ url: string }>(`${environment.apiUrl}/billing/checkout`, {}).subscribe({
+      next: (response) => {
+        if (response.url) {
+          window.location.href = response.url; // Manually route to Stripe
+        }
+      }
     });
   }
 
   onCustomerPortal() {
-    this.http.post<{ url: string }>(`${environment.apiUrl}/billing/portal`, {}).subscribe(res => {
-      window.location.href = res.url;
+    this.http.post<{ url: string }>(`${environment.apiUrl}/billing/portal`, {}).subscribe({
+      next: (response) => {
+        if (response.url) {
+          window.location.href = response.url; // Manually route to Stripe
+        }
+      }
     });
   }
 }
