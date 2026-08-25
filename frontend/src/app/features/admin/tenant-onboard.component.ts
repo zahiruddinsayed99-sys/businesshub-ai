@@ -48,7 +48,11 @@ export class TenantOnboardComponent {
         this.isSubmitting.set(false);
       },
       error: (err) => {
-        this.errorMessage.set(err.error?.detail || 'Failed to create workspace');
+        if (err.status === 409) {
+          this.errorMessage.set('Workspace or Email already exists');
+        } else {
+          this.errorMessage.set(err.error?.detail || 'Failed to create workspace');
+        }
         this.isSubmitting.set(false);
       }
     });

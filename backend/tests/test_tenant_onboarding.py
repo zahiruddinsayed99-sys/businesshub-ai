@@ -89,7 +89,7 @@ async def test_tenant_onboarding_success(async_db_session: AsyncSession):
         role_res = await async_db_session.execute(role_stmt)
         user_role = role_res.scalars().first()
         assert user_role is not None
-        assert user_role.role == "ADMIN"
+        assert user_role.role == "TENANT_OWNER"
 
 
 @pytest.mark.asyncio
