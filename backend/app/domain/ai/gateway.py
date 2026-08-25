@@ -20,7 +20,7 @@ class AiGatewayService:
         await self.pre_flight_check(organization_id, credit_cost=1)
 
         # Mock embedding generation for now
-        # In a real scenario, this would call an external API like OpenAI
+        # In a real scenario, this would call an external API like Gemini via google-generativeai
         return [0.1] * 1536
 
     async def execute_prompt(self, organization_id: uuid.UUID, template_name: str, context: Dict[str, Any]) -> Any:
