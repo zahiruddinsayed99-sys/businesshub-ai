@@ -32,17 +32,20 @@ async def create_checkout_session(
     if not organization:
         raise HTTPException(status_code=404, detail="Organization not found")
 
-    customer_id = organization.stripe_customer_id
-    if not customer_id:
-        customer = await run_in_threadpool(stripe.Customer.create,
-            name=organization.name,
-            metadata={"organization_id": str(organization.id)}
-        )
-        customer_id = customer.id
-        organization.stripe_customer_id = customer_id
-        await db.commit()
-
     try:
+        if not settings.STRIPE_API_KEY:
+            raise ValueError("Stripe API key is not configured")
+
+        customer_id = organization.stripe_customer_id
+        if not customer_id:
+            customer = await run_in_threadpool(stripe.Customer.create,
+                name=organization.name,
+                metadata={"organization_id": str(organization.id)}
+            )
+            customer_id = customer.id
+            organization.stripe_customer_id = customer_id
+            await db.commit()
+
         session_kwargs = {
             "customer": customer_id,
             "payment_method_options": {"card": {"request_three_d_secure": "any"}},
@@ -90,17 +93,20 @@ async def create_customer_portal(
     if not organization:
         raise HTTPException(status_code=404, detail="Organization not found")
 
-    customer_id = organization.stripe_customer_id
-    if not customer_id:
-        customer = await run_in_threadpool(stripe.Customer.create,
-            name=organization.name,
-            metadata={"organization_id": str(organization.id)}
-        )
-        customer_id = customer.id
-        organization.stripe_customer_id = customer_id
-        await db.commit()
-
     try:
+        if not settings.STRIPE_API_KEY:
+            raise ValueError("Stripe API key is not configured")
+
+        customer_id = organization.stripe_customer_id
+        if not customer_id:
+            customer = await run_in_threadpool(stripe.Customer.create,
+                name=organization.name,
+                metadata={"organization_id": str(organization.id)}
+            )
+            customer_id = customer.id
+            organization.stripe_customer_id = customer_id
+            await db.commit()
+
         portal_session = await run_in_threadpool(stripe.billing_portal.Session.create,
             customer=organization.stripe_customer_id,
             return_url="http://localhost:4200/billing"
