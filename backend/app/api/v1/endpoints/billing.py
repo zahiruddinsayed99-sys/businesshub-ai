@@ -87,8 +87,18 @@ async def create_customer_portal(
     result = await db.execute(stmt)
     organization = result.scalars().first()
 
-    if not organization or not organization.stripe_customer_id:
-        raise HTTPException(status_code=400, detail="No active Stripe customer found")
+    if not organization:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    customer_id = organization.stripe_customer_id
+    if not customer_id:
+        customer = await run_in_threadpool(stripe.Customer.create,
+            name=organization.name,
+            metadata={"organization_id": str(organization.id)}
+        )
+        customer_id = customer.id
+        organization.stripe_customer_id = customer_id
+        await db.commit()
 
     try:
         portal_session = await run_in_threadpool(stripe.billing_portal.Session.create,

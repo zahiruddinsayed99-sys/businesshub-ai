@@ -82,11 +82,17 @@ class TenantRepository:
         org: Organization,
         name: Optional[str] = None,
         subscription_status: Optional[str] = None,
+        gstin: Optional[str] = None,
+        billing_state: Optional[str] = None,
     ) -> Organization:
         if name is not None:
             org.name = name
         if subscription_status is not None:
             org.subscription_status = subscription_status
+        if gstin is not None:
+            org.gstin = gstin
+        if billing_state is not None:
+            org.billing_state = billing_state
         db.add(org)
         await db.commit()
         await db.refresh(org)

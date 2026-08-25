@@ -33,6 +33,8 @@ export class BillingDashboardComponent {
     this.loadBillingInfo();
   }
 
+  successToast = signal<boolean>(false);
+
   loadBillingInfo() {
     this.http.get<any>(`${environment.apiUrl}/organizations/me`).subscribe(res => {
       this.subscriptionTier.set(res.subscription_tier || 'FREE');
@@ -42,6 +44,11 @@ export class BillingDashboardComponent {
       this.seatsUsed.set(res.user_count || 1);
       this.seatsMax.set(3);
 
+      this.gstinForm.patchValue({
+        gstin: res.gstin || '',
+        billingState: res.billing_state || ''
+      });
+
       if (this.subscriptionTier() === 'FREE' && this.seatsUsed() > this.seatsMax()) {
         this.isSoftLocked.set(true);
       }
@@ -50,7 +57,15 @@ export class BillingDashboardComponent {
 
   saveGstin() {
     if (this.gstinForm.valid) {
-      this.http.patch(`${environment.apiUrl}/organizations/me`, this.gstinForm.value).subscribe();
+      this.http.patch(`${environment.apiUrl}/organizations/me`, {
+        gstin: this.gstinForm.value.gstin,
+        billing_state: this.gstinForm.value.billingState
+      }).subscribe({
+        next: () => {
+          this.successToast.set(true);
+          setTimeout(() => this.successToast.set(false), 3000);
+        }
+      });
     }
   }
 

@@ -16,7 +16,15 @@ export class TenantOnboardComponent {
   private http = inject(HttpClient);
 
   companyName = signal<string>('');
+  orgName = signal<string>('');
   companySlug = signal<string>('');
+  email = signal<string>('');
+  adminEmail = signal<string>('');
+  password = signal<string>('');
+  adminPassword = signal<string>('');
+  fullName = signal<string>('');
+  adminFullName = signal<string>('');
+
   isSubmitting = signal<boolean>(false);
   successMessage = signal<string | null>(null);
   errorMessage = signal<string | null>(null);
@@ -28,18 +36,16 @@ export class TenantOnboardComponent {
     this.successMessage.set(null);
     this.errorMessage.set(null);
 
-    this.http.post<any>(`${environment.apiUrl}/tenant/onboard`, {
-      org_name: this.companyName(),
+    this.http.post<any>(`${environment.apiUrl}/tenants/onboard`, {
+      name: this.companyName(),
+      org_name: this.orgName(),
       slug: this.companySlug(),
-      // Mock admin details as the issue says "System make new workspace without making new user."
-      // BUT backend requires these fields for standard onboarding.
-      // Wait, is there a special admin endpoint?
-      // POST /api/v1/tenant/onboard might be a new one or existing. Let's send a dummy user or just full payload.
-      // Wait, let's create a custom endpoint if needed, or see if backend has it.
-      // The issue says: Call endpoint: POST /api/v1/tenant/onboard (notice tenant vs tenants). Let's use the one that exists or adapt it.
-      admin_full_name: 'Super Admin Creator',
-      admin_email: `admin-${this.companySlug()}@example.com`,
-      admin_password: 'Password123!'
+      email: this.email(),
+      admin_email: this.adminEmail(),
+      password: this.password(),
+      admin_password: this.adminPassword(),
+      full_name: this.fullName(),
+      admin_full_name: this.adminFullName()
     }).subscribe({
       next: (res) => {
         this.successMessage.set(`Workspace for ${this.companyName()} created successfully!`);

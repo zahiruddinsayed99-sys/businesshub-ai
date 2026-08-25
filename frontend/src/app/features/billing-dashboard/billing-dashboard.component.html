@@ -39,6 +39,9 @@
         <input id="billingState" type="text" formControlName="billingState" class="form-control" />
       </div>
       <button type="submit" [disabled]="!gstinForm.valid">Save Profile</button>
+      <div *ngIf="successToast()" class="success-toast">
+        Saved successfully
+      </div>
     </form>
   </div>
 
