@@ -142,7 +142,9 @@ export class TenantOnboardingComponent implements OnInit {
       },
       error: (err) => {
         this.isSubmitting = false;
-        if (err.error && err.error.detail) {
+        if (err.status === 409) {
+          this.errorMessage = 'Workspace or Email already exists';
+        } else if (err.error && err.error.detail) {
           this.errorMessage = typeof err.error.detail === 'string' ? err.error.detail : err.error.detail.detail || 'Onboarding failed';
         } else {
           this.errorMessage = 'An unexpected error occurred during onboarding.';

@@ -29,7 +29,7 @@ def get_crm_deal_repo(db: AsyncSession = Depends(get_db)) -> CrmDealRepository:
 
 @router.get("", response_model=List[CrmDealResponse])
 async def get_deals(
-    context: TenantContext = Depends(RequiresPermission("crm:write")),
+    context: TenantContext = Depends(RequiresPermission("crm:read")),
     repo: CrmDealRepository = Depends(get_crm_deal_repo),
 ):
     return await repo.get_all(context.organization_id)
@@ -38,7 +38,7 @@ async def get_deals(
 @router.get("/{deal_id}", response_model=CrmDealResponse)
 async def get_deal(
     deal_id: uuid.UUID,
-    context: TenantContext = Depends(RequiresPermission("crm:write")),
+    context: TenantContext = Depends(RequiresPermission("crm:read")),
     repo: CrmDealRepository = Depends(get_crm_deal_repo),
 ):
     return await repo.get_by_id(deal_id, context.organization_id)
