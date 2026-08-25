@@ -100,6 +100,8 @@ class OrganizationResponse(BaseModel):
     slug: str
     subscription_status: str
     created_at: Optional[datetime] = None
+    gstin: Optional[str] = None
+    billing_state: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -108,3 +110,5 @@ class OrganizationResponse(BaseModel):
 class OrganizationUpdate(BaseModel):
     name: Optional[str] = None
     subscription_status: Optional[str] = None
+    gstin: Optional[str] = None
+    billing_state: Optional[str] = None

@@ -39,6 +39,7 @@ export class LoginComponent {
       password: val.password
     }).subscribe({
       next: (res) => {
+        let isSuperAdmin = false;
         try {
           if (typeof localStorage !== 'undefined') {
             localStorage.setItem('access_token', res.access_token);
@@ -46,10 +47,22 @@ export class LoginComponent {
               localStorage.setItem('organization_id', res.organization_id);
             }
           }
+          // Decode JWT token to check for SUPER_ADMIN role
+          const tokenParts = res.access_token.split('.');
+          if (tokenParts.length === 3) {
+            const payload = JSON.parse(atob(tokenParts[1]));
+            if (payload.role === 'SUPER_ADMIN' || (Array.isArray(payload.roles) && payload.roles.includes('SUPER_ADMIN'))) {
+              isSuperAdmin = true;
+            }
+          }
         } catch (e) {
-          console.error('Error setting localStorage', e);
+          console.error('Error setting localStorage or decoding token', e);
         }
-        this.router.navigate(['/crm']);
+        if (isSuperAdmin) {
+          this.router.navigate(['/admin/tenant']);
+        } else {
+          this.router.navigate(['/crm']);
+        }
       },
       error: (err) => {
         this.loading = false;

@@ -53,6 +53,8 @@ async def update_current_organization(
         org=org,
         name=payload.name,
         subscription_status=payload.subscription_status,
+        gstin=payload.gstin,
+        billing_state=payload.billing_state,
     )
     return updated_org
 
