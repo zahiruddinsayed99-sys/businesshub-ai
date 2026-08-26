@@ -85,12 +85,6 @@ async def test_crm_ai_score_success(async_client: AsyncClient, db_session, redis
     db_session.add(deal)
     await db_session.commit()
 
-    class MockJob:
-        id = "mock-job-id"
-
-    import app.api.v1.endpoints.crm_deals
-    monkeypatch.setattr(app.api.v1.endpoints.crm_deals.calculate_lead_score, "delay", lambda *args, **kwargs: MockJob())
-
     response = await async_client.post(
         f"/api/v1/crm/deals/{deal.id}/ai-score",
         headers={"Authorization": f"Bearer {token}", "X-Organization-Id": str(org.id)}
@@ -98,12 +92,10 @@ async def test_crm_ai_score_success(async_client: AsyncClient, db_session, redis
 
     assert response.status_code == 202
     data = response.json()
-    assert data["job_id"] == "mock-job-id"
+    assert data["status"] == "accepted"
     assert data["deal_id"] == str(deal.id)
 
     await db_session.refresh(org)
-    # The endpoint deducts 4 credits. The mock Celery task doesn't execute gateway.
-    # Therefore it should be 4 here.
     assert org.ai_credits_used == 4
 
 async def test_crm_ai_draft_followup_success(async_client: AsyncClient, db_session, redis):

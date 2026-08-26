@@ -1,8 +1,10 @@
 import uuid
+import google.generativeai as genai
 from typing import Optional, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 from app.core.billing import consume_ai_credits_br_plt_002, check_soft_lock_overage
+from app.core.config import settings
 
 class AiGatewayService:
     def __init__(self, session: AsyncSession):
@@ -33,6 +35,28 @@ class AiGatewayService:
         elif template_name == "crm_followup_v1":
             return "Here is a follow-up email draft based on the context."
         return {}
+
+    async def execute_rag_chat(self, organization_id: uuid.UUID, document_context: str, user_question: str) -> str:
+        # Pre-flight check and deduct credits
+        await self.pre_flight_check(organization_id, credit_cost=2)
+
+        if not settings.GEMINI_API_KEY:
+            raise HTTPException(status_code=500, detail="GEMINI_API_KEY not configured")
+
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+
+        prompt = f"""You are a helpful AI assistant. Answer the user's question using ONLY the provided document context.
+
+Context:
+{document_context}
+
+User's Question:
+{user_question}"""
+
+        response = await model.generate_content_async(prompt)
+
+        return response.text
 
     async def generate_quiz(self, organization_id: uuid.UUID, lesson_content: str) -> dict:
         # Pre-flight check and deduct 10 credits as per requirements

@@ -1,8 +1,6 @@
 import uuid
 import asyncio
 from datetime import datetime, timezone
-from celery import shared_task
-from app.core.celery_app import celery_app
 from app.core.redis import get_redis_client
 from app.core.database import get_engine
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
@@ -10,20 +8,7 @@ from sqlalchemy import select, update, func
 from app.domain.ai.gateway import AiGatewayService
 from app.domain.models.crm_deal import CrmDeal
 
-@celery_app.task(bind=True, name="crm.calculate_lead_score", max_retries=5)
-def calculate_lead_score(self, deal_id_str: str):
-    deal_id = uuid.UUID(deal_id_str)
-
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            raise RuntimeError("Event loop is already running")
-    except RuntimeError:
-        return asyncio.run(_calculate_lead_score_async(self, deal_id))
-
-    return loop.run_until_complete(_calculate_lead_score_async(self, deal_id))
-
-async def _calculate_lead_score_async(task, deal_id: uuid.UUID):
+async def calculate_lead_score(deal_id: uuid.UUID):
     redis = await get_redis_client()
     lock_key = f"ai_lock:score:{str(deal_id)}"
 
@@ -64,11 +49,8 @@ async def _calculate_lead_score_async(task, deal_id: uuid.UUID):
                 await db.commit()
 
             except Exception as e:
-                error_str = str(e)
                 # Catch transient provider errors
-                if "429" in error_str or "rate" in error_str.lower() or "timeout" in error_str.lower():
-                    await redis.delete(lock_key)
-                    raise task.retry(exc=e, countdown=2 ** task.request.retries)
+                # Re-raise to let the background task handler log it
                 raise e
 
         return {"status": "completed", "deal_id": str(deal_id)}
