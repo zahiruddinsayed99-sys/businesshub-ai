@@ -1,7 +1,6 @@
 import uuid
 import asyncio
 from datetime import datetime, timezone
-from celery import shared_task
 from app.core.redis import get_redis_client
 from app.core.database import get_engine
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
@@ -9,8 +8,7 @@ from sqlalchemy import select, update, func
 from app.domain.ai.gateway import AiGatewayService
 from app.domain.models.crm_deal import CrmDeal
 
-
-async def _calculate_lead_score_async(task, deal_id: uuid.UUID):
+async def calculate_lead_score(deal_id: uuid.UUID):
     redis = await get_redis_client()
     lock_key = f"ai_lock:score:{str(deal_id)}"
 
@@ -51,11 +49,8 @@ async def _calculate_lead_score_async(task, deal_id: uuid.UUID):
                 await db.commit()
 
             except Exception as e:
-                error_str = str(e)
                 # Catch transient provider errors
-                if "429" in error_str or "rate" in error_str.lower() or "timeout" in error_str.lower():
-                    await redis.delete(lock_key)
-                    raise task.retry(exc=e, countdown=2 ** task.request.retries)
+                # Re-raise to let the background task handler log it
                 raise e
 
         return {"status": "completed", "deal_id": str(deal_id)}

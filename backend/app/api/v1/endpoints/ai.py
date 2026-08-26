@@ -9,6 +9,7 @@ from app.tasks.ai_tasks import process_document_embeddings
 from app.domain.models.organization_document import OrganizationDocument
 from app.domain.models.ai_job import AiJob
 from sqlalchemy import select
+from app.domain.ai.gateway import AiGatewayService
 
 router = APIRouter()
 
@@ -25,13 +26,25 @@ async def chat_rag(
     context: TenantContext = Depends(RequiresPermission("ai:read")),
     db: AsyncSession = Depends(get_db)
 ):
-    # Dummy response for now, representing a RAG response
-    # In a full implementation, this would involve embedding the query,
-    # searching `OrganizationDocument` using pgvector, and sending context to an LLM.
+    stmt = select(OrganizationDocument).where(OrganizationDocument.organization_id == context.organization_id)
+    documents = (await db.execute(stmt)).scalars().all()
 
-    return {
-        "reply": f"Here is a simulated RAG response to your message: '{payload.message}'. Assuming knowledge base context was retrieved."
-    }
+    if not documents:
+        return {"reply": "Please ingest a document first before chatting."}
+
+    document_context = "\n\n".join([doc.content for doc in documents])
+
+    gateway = AiGatewayService(db)
+
+    try:
+        reply = await gateway.execute_rag_chat(
+            organization_id=context.organization_id,
+            document_context=document_context,
+            user_question=payload.message
+        )
+        return {"reply": reply}
+    except Exception as e:
+        return {"reply": f"Sorry, failed to get a response: {str(e)}"}
 
 @router.post("/documents/upload", status_code=status.HTTP_202_ACCEPTED)
 async def upload_document(
