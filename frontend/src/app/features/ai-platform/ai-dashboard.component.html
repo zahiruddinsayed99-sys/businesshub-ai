@@ -26,11 +26,16 @@
   <div class="glass-panel chat-widget">
     <h2>Chat RAG</h2>
     <div class="chat-messages">
-      <p class="placeholder-text">Knowledge base is ready. Start asking questions...</p>
+      <p class="placeholder-text" *ngIf="messages().length === 0">Knowledge base is ready. Start asking questions...</p>
+
+      <div *ngFor="let msg of messages()" class="chat-bubble" [ngClass]="msg.role">
+        <strong>{{ msg.role === 'user' ? 'You' : 'AI' }}:</strong>
+        <p>{{ msg.content }}</p>
+      </div>
     </div>
-    <div class="chat-input-area">
-      <input type="text" placeholder="Ask anything..." class="glass-input" />
-      <button class="glass-button primary">Send</button>
-    </div>
+    <form class="chat-input-area" [formGroup]="chatForm" (ngSubmit)="sendMessage()">
+      <input type="text" formControlName="message" placeholder="Ask anything..." class="glass-input" />
+      <button type="submit" [disabled]="chatForm.invalid" class="glass-button primary">Send</button>
+    </form>
   </div>
 </div>

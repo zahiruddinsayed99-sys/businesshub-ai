@@ -96,6 +96,9 @@ class Settings(BaseSettings):
     MINIO_ENDPOINT: str = "http://localhost:9000"
     MINIO_CONSOLE_PORT: int = 9001
 
+    # AI Settings
+    GEMINI_API_KEY: str = ""
+
     # Security & Authentication Settings
     JWT_ALGORITHM: str = "RS256"
     JWT_PRIVATE_KEY: str = ""
