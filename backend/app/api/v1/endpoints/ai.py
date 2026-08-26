@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter, Depends, status, Request
+from fastapi import APIRouter, Depends, status, Request, BackgroundTasks, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.tenant_middleware import TenantContext, get_tenant_context
@@ -7,8 +7,8 @@ from app.core.rbac import RequiresPermission
 from pydantic import BaseModel
 from app.tasks.ai_tasks import process_document_embeddings
 from app.domain.models.organization_document import OrganizationDocument
-from celery.result import AsyncResult
-from app.core.celery_app import celery_app
+from app.domain.models.ai_job import AiJob
+from sqlalchemy import select
 
 router = APIRouter()
 
@@ -16,9 +16,27 @@ class DocumentUploadRequest(BaseModel):
     title: str
     content: str
 
+class ChatMessageRequest(BaseModel):
+    message: str
+
+@router.post("/chat", status_code=status.HTTP_200_OK)
+async def chat_rag(
+    payload: ChatMessageRequest,
+    context: TenantContext = Depends(RequiresPermission("ai:read")),
+    db: AsyncSession = Depends(get_db)
+):
+    # Dummy response for now, representing a RAG response
+    # In a full implementation, this would involve embedding the query,
+    # searching `OrganizationDocument` using pgvector, and sending context to an LLM.
+
+    return {
+        "reply": f"Here is a simulated RAG response to your message: '{payload.message}'. Assuming knowledge base context was retrieved."
+    }
+
 @router.post("/documents/upload", status_code=status.HTTP_202_ACCEPTED)
 async def upload_document(
     payload: DocumentUploadRequest,
+    background_tasks: BackgroundTasks,
     context: TenantContext = Depends(RequiresPermission("ai:write")),
     db: AsyncSession = Depends(get_db)
 ):
@@ -28,23 +46,41 @@ async def upload_document(
         content=payload.content
     )
     db.add(document)
+    await db.flush()
+
+    job = AiJob(
+        organization_id=context.organization_id,
+        status="PENDING"
+    )
+    db.add(job)
     await db.commit()
     await db.refresh(document)
+    await db.refresh(job)
 
-    job = process_document_embeddings.delay(
-        str(context.organization_id),
-        str(document.id),
+    background_tasks.add_task(
+        process_document_embeddings,
+        job.id,
+        context.organization_id,
+        document.id,
         payload.content
     )
 
-    return {"job_id": job.id, "document_id": str(document.id)}
+    return {"job_id": str(job.id), "document_id": str(document.id)}
 
 @router.get("/jobs/{job_id}")
-async def get_job_status(job_id: str, context: TenantContext = Depends(RequiresPermission("ai:read"))):
-    job = AsyncResult(job_id, app=celery_app)
+async def get_job_status(
+    job_id: uuid.UUID,
+    context: TenantContext = Depends(RequiresPermission("ai:read")),
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = select(AiJob).where(AiJob.id == job_id, AiJob.organization_id == context.organization_id)
+    job = (await db.execute(stmt)).scalars().first()
+
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
 
     return {
-        "job_id": job_id,
+        "job_id": str(job.id),
         "status": job.status,
-        "result": job.result if job.ready() else None
+        "result": job.result
     }
