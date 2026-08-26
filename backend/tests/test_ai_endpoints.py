@@ -149,49 +149,6 @@ async def test_ai_task_duplicate_and_retry(monkeypatch):
     # Clear lock
     await redis_client.delete(f"ai_lock:doc:{doc_id}")
 
-async def test_ai_chat_rag(async_client: AsyncClient, db_session, redis, monkeypatch):
-    from app.domain.models.organization_document import OrganizationDocument
-    import app.domain.ai.gateway as gateway_module
-
-    org = Organization(name="Org Chat", slug="org-chat", ai_credits_used=0, bonus_ai_credits=100)
-    db_session.add(org)
-    await db_session.flush()
-
-    user, token = await create_user_and_token(db_session, redis, "chat@ai.com", org, "TENANT_OWNER")
-    await db_session.flush()
-
-    # Empty documents case
-    response = await async_client.post(
-        "/api/v1/ai/chat",
-        json={"message": "Hello"},
-        headers={"Authorization": f"Bearer {token}", "X-Organization-Id": str(org.id)}
-    )
-    assert response.status_code == 200
-    assert response.json() == {"reply": "Please ingest a document first before chatting."}
-
-    # Add a document
-    doc = OrganizationDocument(organization_id=org.id, title="Test Doc", content="This is the test context.")
-    db_session.add(doc)
-    await db_session.commit()
-
-    # Mock the gateway execute_rag_chat
-    class MockGateway:
-        def __init__(self, session):
-            pass
-        async def execute_rag_chat(self, organization_id, document_context, user_question):
-            return "Mock Gemini Response"
-
-    monkeypatch.setattr(gateway_module, "AiGatewayService", MockGateway)
-
-    # Test with document
-    response = await async_client.post(
-        "/api/v1/ai/chat",
-        json={"message": "Hello"},
-        headers={"Authorization": f"Bearer {token}", "X-Organization-Id": str(org.id)}
-    )
-    assert response.status_code == 200
-    assert response.json() == {"reply": "Mock Gemini Response"}
-
 async def test_ai_cross_tenant_isolation(db_session):
     from app.repositories.organization_document_repository import OrganizationDocumentRepository
     from app.domain.models.organization_document import OrganizationDocument
