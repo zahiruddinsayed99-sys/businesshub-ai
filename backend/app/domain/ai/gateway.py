@@ -42,9 +42,9 @@ class AiGatewayService:
 
         if not settings.GEMINI_API_KEY:
             raise HTTPException(status_code=500, detail="GEMINI_API_KEY not configured")
-
+        
         genai.configure(api_key=settings.GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('models/gemini-flash-latest')
 
         prompt = f"""You are a helpful AI assistant. Answer the user's question using ONLY the provided document context.
 
