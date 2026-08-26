@@ -3,7 +3,6 @@ from typing import List
 from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from celery.result import AsyncResult
-from app.core.celery_app import celery_app
 
 from app.core.billing import check_soft_lock_overage, consume_ai_credits_br_plt_002, BillingError
 from app.core.database import get_db
