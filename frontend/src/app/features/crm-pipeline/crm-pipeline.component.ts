@@ -116,13 +116,13 @@ export class CrmPipelineComponent implements OnInit {
 
     if (data.expected_close_date && typeof data.expected_close_date === 'string' && data.expected_close_date.trim() !== '') {
        payload.expected_close_date = data.expected_close_date;
-    } else if (!data.expected_close_date) {
+    } else if (!data.expected_close_date || (typeof data.expected_close_date === 'string' && data.expected_close_date.trim() === '')) {
        payload.expected_close_date = null;
     }
 
     this.crmService.updateDeal(data.id, payload).subscribe({
       next: (deal) => {
-        this.deals.update(deals => deals.map(d => d.id === deal.id ? deal : d));
+        this.loadDeals();
         this.closeEditModal();
       },
       error: (err) => {

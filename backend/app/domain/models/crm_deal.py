@@ -38,7 +38,7 @@ class CrmDeal(Base, TimestampMixin):
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     value_amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
-    currency: Mapped[str] = mapped_column(String(3), server_default="USD", default="USD", nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), server_default="INR", default="INR", nullable=False)
     stage: Mapped[str] = mapped_column(String(50), server_default="LEAD", default="LEAD", nullable=False)
     expected_close_date: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
