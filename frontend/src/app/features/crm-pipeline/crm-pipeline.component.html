@@ -18,10 +18,7 @@
     <div class="kanban-column" *ngFor="let stage of columns">
       <div class="column-header">{{ stage }}</div>
 
-      <div
-        cdkDropList
-        [cdkDropListData]="getDealsByStage(stage)"
-        (cdkDropListDropped)="drop($event, stage)"
+      <div cdkDropList [cdkDropListData]="getDealsByStage(stage)" (cdkDropListDropped)="drop($event, stage)"
         class="deal-list">
 
         <div class="deal-card" *ngFor="let deal of getDealsByStage(stage)" cdkDrag (click)="openEditModal(deal)">
@@ -30,17 +27,30 @@
           <div class="deal-owner" *ngIf="deal.owner_user_id">Owner ID: {{ deal.owner_user_id.substring(0,8) }}</div>
 
           <div class="ai-metrics" *ngIf="deal.lead_score !== undefined">
-            <span class="score-badge" [class.high]="deal.lead_score >= 80" [class.medium]="deal.lead_score >= 50 && deal.lead_score < 80" [class.low]="deal.lead_score < 50">
+            <span class="score-badge" [class.high]="deal.lead_score >= 80"
+              [class.medium]="deal.lead_score >= 50 && deal.lead_score < 80" [class.low]="deal.lead_score < 50">
               Score: {{ deal.lead_score }}
             </span>
           </div>
 
           <div class="ai-actions">
-            <button class="ai-btn score-btn" (click)="scoreDeal(deal); $event.stopPropagation()" [disabled]="scoringJobs()[deal.id]">
-              <span *ngIf="scoringJobs()[deal.id]">Scoring...</span>
-              <span *ngIf="!scoringJobs()[deal.id]">Score Lead</span>
+            <!-- Main Score Button (Disabled while pending, text changes if already scored) -->
+            <button class="ai-btn score-btn" (click)="scoreDeal(deal); $event.stopPropagation()"
+              [disabled]="scoringJobs()[deal.id]">
+              <span *ngIf="scoringJobs()[deal.id] === 'pending'">Scoring...</span>
+              <span *ngIf="scoringJobs()[deal.id] !== 'pending'">
+                {{ deal.lead_score !== undefined ? '↻ Re-score' : '✨ Score Lead' }}
+              </span>
             </button>
-            <button class="ai-btn draft-btn" (click)="draftFollowUp(deal); $event.stopPropagation()">Draft Follow-Up</button>
+
+            <!-- NEW: Refresh Button (Only visible when the background task is pending) -->
+            <button *ngIf="scoringJobs()[deal.id] === 'pending'" class="ai-btn refresh-btn"
+              (click)="refreshDealScore(deal.id); $event.stopPropagation()" title="Check if AI scoring is done">
+              🔄 Check
+            </button>
+
+            <button class="ai-btn draft-btn" (click)="draftFollowUp(deal); $event.stopPropagation()">Draft
+              Follow-Up</button>
           </div>
         </div>
       </div>
@@ -127,7 +137,8 @@
             <ul *ngIf="editingDealData().intent_signals && editingDealData().intent_signals!.length > 0">
               <li *ngFor="let signal of editingDealData().intent_signals">{{ signal }}</li>
             </ul>
-            <span *ngIf="!editingDealData().intent_signals || editingDealData().intent_signals!.length === 0">No signals found.</span>
+            <span *ngIf="!editingDealData().intent_signals || editingDealData().intent_signals!.length === 0">No signals
+              found.</span>
           </div>
         </div>
       </div>

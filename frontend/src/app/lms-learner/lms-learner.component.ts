@@ -20,6 +20,8 @@ export class LmsLearnerComponent implements OnInit {
       next: (res) => this.availableCourses.set(res),
       error: (err) => console.error('Failed to load courses:', err)
     });
+    this.loadAvailableCourses();
+    this.loadEnrollments();
   }
 
   private http = inject(HttpClient);
@@ -35,11 +37,6 @@ export class LmsLearnerComponent implements OnInit {
   quizData = signal<any>(null);
   selectedAnswers = signal<any>({});
   quizResult = signal<any>(null);
-
-  ngOnInit() {
-    this.loadAvailableCourses();
-    this.loadEnrollments();
-  }
 
   loadAvailableCourses() {
     this.http.get<any[]>(`${environment.apiUrl}/lms/courses`).subscribe({

@@ -70,16 +70,16 @@ export class CrmPipelineComponent implements OnInit {
     }
 
     const payload: any = {
-       title: data.title,
-       value_amount: Number(data.value_amount),
-       currency: data.currency || 'INR',
-       stage: data.stage
+      title: data.title,
+      value_amount: Number(data.value_amount),
+      currency: data.currency || 'INR',
+      stage: data.stage
     };
 
     if (data.expected_close_date && data.expected_close_date.trim() !== '') {
-       payload.expected_close_date = data.expected_close_date;
+      payload.expected_close_date = data.expected_close_date;
     } else {
-       payload.expected_close_date = null;
+      payload.expected_close_date = null;
     }
 
     this.crmService.createDeal(payload).subscribe({
@@ -115,9 +115,9 @@ export class CrmPipelineComponent implements OnInit {
     };
 
     if (data.expected_close_date && typeof data.expected_close_date === 'string' && data.expected_close_date.trim() !== '') {
-       payload.expected_close_date = data.expected_close_date;
+      payload.expected_close_date = data.expected_close_date;
     } else if (!data.expected_close_date || (typeof data.expected_close_date === 'string' && data.expected_close_date.trim() === '')) {
-       payload.expected_close_date = null;
+      payload.expected_close_date = null;
     }
 
     this.crmService.updateDeal(data.id, payload).subscribe({
@@ -187,7 +187,7 @@ export class CrmPipelineComponent implements OnInit {
               if (typeof localStorage !== 'undefined') {
                 localStorage.setItem('user_id', data.user_id);
               }
-            } catch (e) {}
+            } catch (e) { }
           }
           this.loadDeals();
         },
@@ -241,13 +241,13 @@ export class CrmPipelineComponent implements OnInit {
 
   scoreDeal(deal: CrmDeal) {
     this.crmAiService.scoreDeal(deal.id).subscribe({
-      next: (response: any) => {
-        // Since backend doesn't return a job_id (it runs calculation directly and updates the deal record),
-        // we'll just poll the deal itself until the lead_score is populated instead of hitting /ai/jobs
-        // But the previous implementation assumed response.job_id.
-        // I will update pollJobStatus to accept the deal_id directly and fetch the deal to check if it's updated.
-        this.scoringJobs.update(jobs => ({ ...jobs, [deal.id]: 'scoring' }));
-        this.pollJobStatus(deal.id);
+      next: () => {
+        // 1. Mark as pending in the UI so a spinner/badge can show
+        this.scoringJobs.update(jobs => ({ ...jobs, [deal.id]: 'pending' }));
+
+        // 2. Fire and forget - NO polling!
+        // Replace this with this.showSuccessToast if you have that method available
+        alert("AI scoring started in the background. Click the refresh icon on the deal later to check the result.");
       },
       error: (err) => {
         console.error('Failed to trigger score', err);
@@ -256,35 +256,42 @@ export class CrmPipelineComponent implements OnInit {
     });
   }
 
-  private pollJobStatus(dealId: string) {
-    timer(0, 2000).pipe(
-      switchMap(() => this.crmService.getDeals()),
-      takeWhile(() => !!this.scoringJobs()[dealId], true)
-    ).subscribe({
-      next: (deals) => {
-        const updatedDeal = deals.find(d => d.id === dealId);
-        // If the deal now has a lead score, we assume it's done.
-        if (updatedDeal && updatedDeal.lead_score !== undefined && updatedDeal.lead_score !== null) {
-          this.deals.set(deals);
+  refreshDealScore(dealId: string) {
+    // 1. Add a cache-buster timestamp to prevent the browser from serving stale data
+    const timestamp = new Date().getTime();
+
+    this.http.get<any>(`${environment.apiUrl}/crm/deals/${dealId}?_cb=${timestamp}`).subscribe({
+      next: (response) => {
+        // Log it so we can see the exact shape of the data in the browser console
+        console.log("Raw API Response:", response);
+
+        // 2. Handle potential API wrappers (if backend sends { data: {...} })
+        const updatedDeal = response.data ? response.data : response;
+
+        if (updatedDeal.lead_score !== null && updatedDeal.lead_score !== undefined) {
+
+          // Clear the pending state
           this.scoringJobs.update(jobs => {
             const newJobs = { ...jobs };
             delete newJobs[dealId];
             return newJobs;
           });
+
+          // 3. Force the UI to reflect the new data.
+          // The easiest brute-force way to update the Kanban board is to just 
+          // reload the entire list of deals from the backend:
+          // this.loadDeals(); // <-- UNCOMMENT OR REPLACE with your actual load method!
+
+        } else {
+          alert("Scoring is still in progress. Please try again in a moment.");
         }
       },
       error: (err) => {
-        console.error('Polling failed', err);
-        this.scoringJobs.update(jobs => {
-          const newJobs = { ...jobs };
-          delete newJobs[dealId];
-          return newJobs;
-        });
+        console.error('Failed to fetch updated deal', err);
+        // this.showErrorToast("Failed to refresh deal score.");
       }
     });
   }
-
-
 
   draftFollowUp(deal: CrmDeal) {
     this.draftModalVisible.set(true);

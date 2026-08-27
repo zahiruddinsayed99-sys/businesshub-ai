@@ -61,16 +61,6 @@ export class LmsAuthorComponent {
     this.lessonId.set(id);
   }
 
-  publishCourse(id: string) {
-    this.http.patch<any>(`${environment.apiUrl}/lms/courses/${id}/status`, {}).subscribe({
-      next: (res) => {
-        alert('Course published successfully');
-        this.loadCourses();
-      },
-      error: (err) => console.error('Failed to publish course:', err)
-    });
-  }
-
   // Module variables
   moduleTitle = signal<string>('');
   moduleDescription = signal<string>('');
@@ -103,11 +93,15 @@ export class LmsAuthorComponent {
   }
 
 
-  publishCourse() {
-    if (!this.courseId()) return;
-    this.http.patch<any>(`${environment.apiUrl}/lms/courses/${this.courseId()}/status`, {}).subscribe({
+  publishCourse(id?: string) {
+    // Fallback to the component's signal if no ID is passed from the template
+    const targetId = id || this.courseId();
+    if (!targetId) return;
+
+    this.http.patch<any>(`${environment.apiUrl}/lms/courses/${targetId}/status`, {}).subscribe({
       next: (res) => {
         alert('Course published successfully!');
+        this.loadCourses(); // Crucial: refreshes the UI after state change
       },
       error: (err) => console.error('Failed to publish course:', err)
     });
