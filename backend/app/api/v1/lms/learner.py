@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.tenant_middleware import get_tenant_context, TenantContext
 from app.domain.lms.learner_schemas import EnrollmentCreate, EnrollmentResponse, ProgressUpdate, ProgressResponse, QuizSubmission, QuizResult
+from app.domain.lms.schemas import CourseResponse, CourseDetailResponse, QuizResponseModel
 from app.domain.lms import learner_services
 
 router = APIRouter()
@@ -15,6 +16,47 @@ def require_lms_read(context: TenantContext = Depends(get_tenant_context)):
             detail={"code": "ERR_RBAC_001", "detail": "Insufficient permissions"}
         )
     return context
+
+@router.get("/courses", response_model=list[CourseResponse])
+async def list_available_courses(
+    db: AsyncSession = Depends(get_db),
+    context: TenantContext = Depends(require_lms_read)
+):
+    return await learner_services.get_available_courses(db, context.organization_id)
+
+@router.get("/enrollments", response_model=list[EnrollmentResponse])
+async def list_enrollments(
+    db: AsyncSession = Depends(get_db),
+    context: TenantContext = Depends(require_lms_read)
+):
+    return await learner_services.get_user_enrollments(db, context.organization_id, context.user_id)
+
+@router.get("/courses/{id}", response_model=CourseDetailResponse)
+async def get_enrolled_course_detail(
+    id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    context: TenantContext = Depends(require_lms_read)
+):
+    return await learner_services.get_enrolled_course_detail(db, context.organization_id, context.user_id, id)
+
+@router.get("/courses/{id}/progress", response_model=list[ProgressResponse])
+async def get_course_progress(
+    id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    context: TenantContext = Depends(require_lms_read)
+):
+    return await learner_services.get_user_lesson_progresses(db, context.organization_id, context.user_id, id)
+
+@router.get("/lessons/{id}/quiz", response_model=QuizResponseModel)
+async def get_lesson_quiz(
+    id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    context: TenantContext = Depends(require_lms_read)
+):
+    quiz = await learner_services.get_lesson_quiz(db, context.organization_id, id)
+    if not quiz:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    return quiz
 
 @router.post("/enrollments", response_model=EnrollmentResponse)
 async def enroll_course(
