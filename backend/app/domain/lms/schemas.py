@@ -46,3 +46,28 @@ class LessonResponse(BaseModel):
 
 class QuizGenerateRequest(BaseModel):
     lesson_id: str
+
+class QuizAnswerResponse(BaseModel):
+    id: uuid.UUID
+    answer_text: str
+    model_config = ConfigDict(from_attributes=True)
+
+class QuizQuestionResponse(BaseModel):
+    id: uuid.UUID
+    question_text: str
+    answers: List[QuizAnswerResponse]
+    model_config = ConfigDict(from_attributes=True)
+
+class QuizResponseModel(BaseModel):
+    id: uuid.UUID
+    title: str
+    questions: List[QuizQuestionResponse]
+    model_config = ConfigDict(from_attributes=True)
+
+class CourseModuleDetail(CourseModuleResponse):
+    lessons: List[LessonResponse] = []
+    model_config = ConfigDict(from_attributes=True)
+
+class CourseDetailResponse(CourseResponse):
+    modules: List[CourseModuleDetail] = []
+    model_config = ConfigDict(from_attributes=True)

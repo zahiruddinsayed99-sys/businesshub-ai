@@ -24,55 +24,105 @@ export class LmsLearnerComponent implements OnInit {
 
   private http = inject(HttpClient);
 
-  availableCourses = signal<any[]>([
-    { id: 'mock-course-1', title: 'Advanced Angular Architecture', description: 'Learn advanced topics.' }
-  ]);
+  availableCourses = signal<any[]>([]);
+  enrollments = signal<any[]>([]);
 
   activeEnrollment = signal<any>(null);
-  lessonMarkdown = signal<string>('');
+  enrolledCourseDetail = signal<any>(null);
+  activeLesson = signal<any>(null);
+  lessonProgresses = signal<any[]>([]);
 
   quizData = signal<any>(null);
   selectedAnswers = signal<any>({});
   quizResult = signal<any>(null);
 
+  ngOnInit() {
+    this.loadAvailableCourses();
+    this.loadEnrollments();
+  }
+
+  loadAvailableCourses() {
+    this.http.get<any[]>(`${environment.apiUrl}/lms/courses`).subscribe({
+      next: (res) => this.availableCourses.set(res),
+      error: (err) => console.error('Failed to load courses:', err)
+    });
+  }
+
+  loadEnrollments() {
+    this.http.get<any[]>(`${environment.apiUrl}/lms/enrollments`).subscribe({
+      next: (res) => this.enrollments.set(res),
+      error: (err) => console.error('Failed to load enrollments:', err)
+    });
+  }
+
+  isEnrolled(courseId: string) {
+    return this.enrollments().some(e => e.course_id === courseId);
+  }
+
   enrollCourse(courseId: string) {
     this.http.post<any>(`${environment.apiUrl}/lms/enrollments`, { course_id: courseId }).subscribe({
       next: (res) => {
-        this.activeEnrollment.set({
-          courseTitle: 'Advanced Angular Architecture',
-          progressPercent: 0,
-          status: 'ENROLLED',
-          warning: null
-        });
-
-        // Mock lesson content for now
-        this.lessonMarkdown.set(`
-# Module 1: Signals
-Welcome to the lesson.
-
-\`\`\`typescript
-const mySignal = signal(0);
-console.log(mySignal());
-\`\`\`
-
-- [x] Step 1
-- [ ] Step 2
-        `);
+        alert('Enrolled successfully!');
+        this.loadEnrollments();
       },
       error: (err) => console.error('Enrollment failed:', err)
     });
   }
 
-  takeQuiz() {
-    this.quizData.set({
-      id: 'mock-quiz-1',
-      questions: [
-        { text: "What is 1+1?", answers: ["1", "2", "3", "4"] },
-        { text: "What is 2+2?", answers: ["2", "3", "4", "5"] },
-        { text: "What is 3+3?", answers: ["3", "4", "6", "8"] },
-        { text: "What is 4+4?", answers: ["4", "6", "8", "10"] },
-        { text: "What is 5+5?", answers: ["5", "8", "10", "12"] },
-      ]
+  openCourse(courseId: string) {
+    this.http.get<any>(`${environment.apiUrl}/lms/courses/${courseId}`).subscribe({
+      next: (res) => {
+        this.enrolledCourseDetail.set(res);
+        const enrollment = this.enrollments().find(e => e.course_id === courseId);
+        if (enrollment) {
+          this.activeEnrollment.set({
+            ...enrollment,
+            courseTitle: res.title
+          });
+        }
+        this.loadProgress(courseId);
+        this.activeLesson.set(null);
+        this.quizData.set(null);
+        this.quizResult.set(null);
+      },
+      error: (err) => console.error('Failed to load course details:', err)
+    });
+  }
+
+  loadProgress(courseId: string) {
+    this.http.get<any[]>(`${environment.apiUrl}/lms/courses/${courseId}/progress`).subscribe({
+      next: (res) => this.lessonProgresses.set(res),
+      error: (err) => console.error('Failed to load progress:', err)
+    });
+  }
+
+  viewLesson(lesson: any) {
+    this.activeLesson.set(lesson);
+    this.quizData.set(null);
+    this.quizResult.set(null);
+  }
+
+  markLessonComplete(lessonId: string) {
+    this.http.post<any>(`${environment.apiUrl}/lms/lessons/${lessonId}/progress`, { is_completed: true }).subscribe({
+      next: (res) => {
+        this.loadProgress(this.enrolledCourseDetail().id);
+        alert('Lesson marked complete');
+      },
+      error: (err) => console.error('Failed to mark lesson complete:', err)
+    });
+  }
+
+  takeQuiz(lessonId: string) {
+    this.http.get<any>(`${environment.apiUrl}/lms/lessons/${lessonId}/quiz`).subscribe({
+      next: (res) => {
+        this.quizData.set(res);
+        this.selectedAnswers.set({});
+        this.quizResult.set(null);
+      },
+      error: (err) => {
+        console.error('Failed to load quiz:', err);
+        alert('No quiz available for this lesson.');
+      }
     });
   }
 
@@ -86,14 +136,14 @@ console.log(mySignal());
     if (!this.quizData()) return;
 
     // Convert selected answers map to the expected backend format
-    const answersArray = Object.keys(this.selectedAnswers()).map(index => ({
-      question_id: `q${index}`,
-      selected_option_id: this.selectedAnswers()[index]
-    }));
+    const answersObj = this.selectedAnswers();
+    const responsesMap: { [key: string]: string } = {};
+    Object.keys(answersObj).forEach(qId => {
+      responsesMap[qId] = answersObj[qId];
+    });
 
-    this.http.post<any>(`${environment.apiUrl}/lms/quizzes/attempts`, {
-      quiz_id: this.quizData().id,
-      responses: answersArray
+    this.http.post<any>(`${environment.apiUrl}/lms/quizzes/attempts?quiz_id=${this.quizData().id}`, {
+      responses: responsesMap
     }).subscribe({
       next: (res) => {
         // Enforce BR-LMS-001 in UI based on score read from backend

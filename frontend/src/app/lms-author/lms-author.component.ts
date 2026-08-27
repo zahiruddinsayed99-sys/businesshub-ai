@@ -17,10 +17,59 @@ import { environment } from '../../environments/environment';
 export class LmsAuthorComponent {
   private http = inject(HttpClient);
 
+  // Courses list
+  courses = signal<any[]>([]);
+
   // Course variables
   courseTitle = signal<string>('');
   courseDescription = signal<string>('');
   courseId = signal<string>('');
+
+  ngOnInit() {
+    this.loadCourses();
+  }
+
+  loadCourses() {
+    this.http.get<any[]>(`${environment.apiUrl}/lms/courses`).subscribe({
+      next: (res) => {
+        this.courses.set(res);
+      },
+      error: (err) => console.error('Failed to load courses:', err)
+    });
+  }
+
+  selectedCourseDetail = signal<any>(null);
+
+  selectCourse(id: string) {
+    this.courseId.set(id);
+    this.moduleId.set('');
+    this.lessonId.set('');
+    this.http.get<any>(`${environment.apiUrl}/lms/courses/${id}`).subscribe({
+      next: (res) => {
+        this.selectedCourseDetail.set(res);
+      },
+      error: (err) => console.error('Failed to get course details:', err)
+    });
+  }
+
+  selectModule(id: string) {
+    this.moduleId.set(id);
+    this.lessonId.set('');
+  }
+
+  selectLesson(id: string) {
+    this.lessonId.set(id);
+  }
+
+  publishCourse(id: string) {
+    this.http.patch<any>(`${environment.apiUrl}/lms/courses/${id}/status`, {}).subscribe({
+      next: (res) => {
+        alert('Course published successfully');
+        this.loadCourses();
+      },
+      error: (err) => console.error('Failed to publish course:', err)
+    });
+  }
 
   // Module variables
   moduleTitle = signal<string>('');
@@ -47,6 +96,7 @@ export class LmsAuthorComponent {
       next: (res) => {
         this.courseId.set(res.id);
         alert('Course created successfully');
+        this.loadCourses();
       },
       error: (err) => console.error('Failed to create course:', err)
     });
@@ -73,6 +123,9 @@ export class LmsAuthorComponent {
       next: (res) => {
         this.moduleId.set(res.id);
         alert('Module created successfully');
+        if (this.courseId()) {
+          this.selectCourse(this.courseId());
+        }
       },
       error: (err) => console.error('Failed to create module:', err)
     });
@@ -88,6 +141,9 @@ export class LmsAuthorComponent {
       next: (res) => {
         this.lessonId.set(res.id);
         alert('Lesson created successfully');
+        if (this.courseId()) {
+          this.selectCourse(this.courseId());
+        }
       },
       error: (err) => console.error('Failed to create lesson:', err)
     });
