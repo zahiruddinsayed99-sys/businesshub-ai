@@ -40,7 +40,7 @@ export class CrmPipelineComponent implements OnInit {
   newDealData = signal<Partial<CrmDeal>>({
     title: '',
     value_amount: 0,
-    currency: 'USD',
+    currency: 'INR',
     stage: 'LEAD',
     expected_close_date: ''
   });
@@ -51,7 +51,7 @@ export class CrmPipelineComponent implements OnInit {
     this.newDealData.set({
       title: '',
       value_amount: 0,
-      currency: 'USD',
+      currency: 'INR',
       stage: 'LEAD',
       expected_close_date: ''
     });
@@ -69,10 +69,18 @@ export class CrmPipelineComponent implements OnInit {
       return;
     }
 
-    const payload = {
-       ...data,
-       value_amount: Number(data.value_amount)
+    const payload: any = {
+       title: data.title,
+       value_amount: Number(data.value_amount),
+       currency: data.currency || 'INR',
+       stage: data.stage
     };
+
+    if (data.expected_close_date && data.expected_close_date.trim() !== '') {
+       payload.expected_close_date = data.expected_close_date;
+    } else {
+       payload.expected_close_date = null;
+    }
 
     this.crmService.createDeal(payload).subscribe({
       next: (deal) => {
@@ -99,13 +107,18 @@ export class CrmPipelineComponent implements OnInit {
     const data = this.editingDealData();
     if (!data.id) return;
 
-    const payload = {
+    const payload: any = {
       title: data.title,
       value_amount: Number(data.value_amount),
-      currency: data.currency,
-      stage: data.stage,
-      expected_close_date: data.expected_close_date
+      currency: data.currency || 'INR',
+      stage: data.stage
     };
+
+    if (data.expected_close_date && typeof data.expected_close_date === 'string' && data.expected_close_date.trim() !== '') {
+       payload.expected_close_date = data.expected_close_date;
+    } else if (!data.expected_close_date) {
+       payload.expected_close_date = null;
+    }
 
     this.crmService.updateDeal(data.id, payload).subscribe({
       next: (deal) => {
@@ -119,6 +132,16 @@ export class CrmPipelineComponent implements OnInit {
     });
   }
 
+
+
+  formatCurrency(value: number): string {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    }).format(value);
+  }
 
   columns = ['LEAD', 'QUALIFIED', 'PROPOSAL', 'WON', 'LOST'];
 
