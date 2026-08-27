@@ -241,9 +241,13 @@ export class CrmPipelineComponent implements OnInit {
 
   scoreDeal(deal: CrmDeal) {
     this.crmAiService.scoreDeal(deal.id).subscribe({
-      next: (response) => {
-        this.scoringJobs.update(jobs => ({ ...jobs, [deal.id]: response.job_id }));
-        this.pollJobStatus(response.job_id, deal.id);
+      next: (response: any) => {
+        // Since backend doesn't return a job_id (it runs calculation directly and updates the deal record),
+        // we'll just poll the deal itself until the lead_score is populated instead of hitting /ai/jobs
+        // But the previous implementation assumed response.job_id.
+        // I will update pollJobStatus to accept the deal_id directly and fetch the deal to check if it's updated.
+        this.scoringJobs.update(jobs => ({ ...jobs, [deal.id]: 'scoring' }));
+        this.pollJobStatus(deal.id);
       },
       error: (err) => {
         console.error('Failed to trigger score', err);
@@ -252,21 +256,16 @@ export class CrmPipelineComponent implements OnInit {
     });
   }
 
-  private pollJobStatus(jobId: string, dealId: string) {
+  private pollJobStatus(dealId: string) {
     timer(0, 2000).pipe(
-      switchMap(() => this.crmAiService.getJobStatus(jobId)),
-      takeWhile(res => res.status === 'PENDING' || res.status === 'STARTED', true)
+      switchMap(() => this.crmService.getDeals()),
+      takeWhile(() => !!this.scoringJobs()[dealId], true)
     ).subscribe({
-      next: (res) => {
-        if (res.status === 'SUCCESS' && res.result?.status === 'completed') {
-          this.loadDeals();
-          this.scoringJobs.update(jobs => {
-            const newJobs = { ...jobs };
-            delete newJobs[dealId];
-            return newJobs;
-          });
-        } else if (res.status === 'FAILURE') {
-          this.showErrorToast("AI Scoring job failed.");
+      next: (deals) => {
+        const updatedDeal = deals.find(d => d.id === dealId);
+        // If the deal now has a lead score, we assume it's done.
+        if (updatedDeal && updatedDeal.lead_score !== undefined && updatedDeal.lead_score !== null) {
+          this.deals.set(deals);
           this.scoringJobs.update(jobs => {
             const newJobs = { ...jobs };
             delete newJobs[dealId];
@@ -284,6 +283,8 @@ export class CrmPipelineComponent implements OnInit {
       }
     });
   }
+
+
 
   draftFollowUp(deal: CrmDeal) {
     this.draftModalVisible.set(true);

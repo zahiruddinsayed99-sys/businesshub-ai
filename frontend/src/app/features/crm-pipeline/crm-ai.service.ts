@@ -11,8 +11,8 @@ export class CrmAiService {
   private apiUrl = environment.apiUrl + '/crm/deals';
   private jobsUrl = environment.apiUrl + '/ai/jobs';
 
-  scoreDeal(dealId: string): Observable<{ job_id: string }> {
-    return this.http.post<{ job_id: string }>(`${this.apiUrl}/${dealId}/ai-score`, {});
+  scoreDeal(dealId: string): Observable<{ deal_id: string }> {
+    return this.http.post<{ deal_id: string }>(`${this.apiUrl}/${dealId}/ai-score`, {});
   }
 
   getJobStatus(jobId: string): Observable<{ status: string, result: any }> {
