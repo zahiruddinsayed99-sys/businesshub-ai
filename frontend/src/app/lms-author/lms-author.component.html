@@ -1,8 +1,19 @@
 <div class="glass-dashboard">
   <h2>LMS Authoring Dashboard</h2>
 
+  <div class="author-controls" *ngIf="courses().length > 0">
+    <h3>Existing Courses</h3>
+    <ul>
+      <li *ngFor="let course of courses()">
+        {{ course.title }} ({{ course.status }})
+        <button (click)="selectCourse(course.id)">Select to Add Modules</button>
+        <button *ngIf="course.status === 'DRAFT'" (click)="publishCourse(course.id)">Publish</button>
+      </li>
+    </ul>
+  </div>
+
   <div class="author-controls">
-    <h3>Create Course</h3>
+    <h3>Create New Course</h3>
     <div class="input-group">
       <label>Title:</label>
       <input type="text" [ngModel]="courseTitle()" (ngModelChange)="courseTitle.set($event)" />
@@ -12,6 +23,20 @@
       <textarea [ngModel]="courseDescription()" (ngModelChange)="courseDescription.set($event)"></textarea>
     </div>
     <button (click)="createCourse()">Save Course</button>
+  </div>
+
+  <div class="author-controls" *ngIf="selectedCourseDetail()">
+    <h3>Course Hierarchy</h3>
+    <div *ngFor="let mod of selectedCourseDetail().modules">
+      <strong>{{ mod.title }}</strong>
+      <button (click)="selectModule(mod.id)">Select Module to Add Lesson</button>
+      <ul>
+        <li *ngFor="let less of mod.lessons">
+          {{ less.title }}
+          <button (click)="selectLesson(less.id)">Select Lesson for Quiz</button>
+        </li>
+      </ul>
+    </div>
   </div>
 
   <div class="author-controls" *ngIf="courseId()">

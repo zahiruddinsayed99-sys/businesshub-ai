@@ -6,39 +6,49 @@
     <div class="course-card" *ngFor="let c of availableCourses()">
       <h4>{{ c.title }}</h4>
       <p>{{ c.description }}</p>
-      <button (click)="enrollCourse(c.id)">Enroll</button>
+      <button *ngIf="!isEnrolled(c.id)" (click)="enrollCourse(c.id)">Enroll</button>
+      <button *ngIf="isEnrolled(c.id)" (click)="openCourse(c.id)">Open Course</button>
     </div>
   </div>
 
-  <div class="enrollment-card" *ngIf="activeEnrollment()">
+  <div class="enrollment-card" *ngIf="activeEnrollment() && enrolledCourseDetail()">
+    <button (click)="activeEnrollment.set(null)">Back to Catalog</button>
     <h3>{{ activeEnrollment().courseTitle }}</h3>
-    <div class="progress-meter">
-      <div class="meter-fill" [style.width]="activeEnrollment().progressPercent + '%'"></div>
-    </div>
     <div class="status-row">
       <span>Status: {{ activeEnrollment().status }}</span>
-      <span class="warning-tag" *ngIf="activeEnrollment().warning">
-        ⚠️ {{ activeEnrollment().warning }}
-      </span>
+    </div>
+
+    <div class="course-content">
+      <div class="module-card" *ngFor="let mod of enrolledCourseDetail().modules">
+        <h4>{{ mod.title }}</h4>
+        <ul>
+          <li *ngFor="let lesson of mod.lessons">
+            <a (click)="viewLesson(lesson)" style="cursor: pointer; color: blue; text-decoration: underline;">
+              {{ lesson.title }}
+            </a>
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
 
-  <div class="lesson-player" *ngIf="lessonMarkdown()">
-    <h3>Current Lesson</h3>
+  <div class="lesson-player" *ngIf="activeLesson() && activeEnrollment()">
+    <h3>{{ activeLesson().title }}</h3>
     <div class="markdown-container">
-      <markdown [data]="lessonMarkdown()"></markdown>
+      <markdown [data]="activeLesson().content_body || ''"></markdown>
     </div>
-    <button (click)="takeQuiz()">Take Quiz</button>
+    <button (click)="markLessonComplete(activeLesson().id)">Mark Complete</button>
+    <button (click)="takeQuiz(activeLesson().id)">Take Quiz</button>
   </div>
 
-  <div class="quiz-player" *ngIf="quizData()">
-    <h3>Quiz</h3>
+  <div class="quiz-player" *ngIf="quizData() && activeLesson()">
+    <h3>Quiz: {{ quizData().title }}</h3>
     <div *ngFor="let q of quizData().questions; let i = index">
-      <p><strong>Q{{ i + 1 }}:</strong> {{ q.text }}</p>
+      <p><strong>Q{{ i + 1 }}:</strong> {{ q.question_text }}</p>
       <div *ngFor="let a of q.answers; let j = index">
         <label>
-          <input type="radio" [name]="'q' + i" [value]="a" (change)="selectAnswer(i, a)" />
-          {{ a }}
+          <input type="radio" [name]="'q' + i" [value]="a.id" (change)="selectAnswer(q.id, a.id)" />
+          {{ a.answer_text }}
         </label>
       </div>
     </div>
