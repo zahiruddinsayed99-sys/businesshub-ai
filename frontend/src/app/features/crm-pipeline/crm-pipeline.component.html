@@ -3,7 +3,66 @@
     <h2>CRM Deal Pipeline</h2>
     <div class="header-actions">
       <button class="primary-btn new-deal-btn" (click)="openCreateModal()">+ New Deal</button>
+    </div>
+    <div class="filters">
+      <button [class.active]="filterMode() === 'ALL'" (click)="setFilter('ALL')">All Team Deals</button>
+      <button [class.active]="filterMode() === 'MINE'" (click)="setFilter('MINE')">My Assigned Deals</button>
+    </div>
+  </div>
 
+  <div class="toast-error" *ngIf="errorToast()">
+    {{ errorToast() }}
+  </div>
+
+  <div class="kanban-board" cdkDropListGroup>
+    <div class="kanban-column" *ngFor="let stage of columns">
+      <div class="column-header">{{ stage }}</div>
+
+      <div
+        cdkDropList
+        [cdkDropListData]="getDealsByStage(stage)"
+        (cdkDropListDropped)="drop($event, stage)"
+        class="deal-list">
+
+        <div class="deal-card" *ngFor="let deal of getDealsByStage(stage)" cdkDrag (click)="openEditModal(deal)">
+          <div class="deal-title">{{ deal.title }}</div>
+          <div class="deal-value">{{ formatCurrency(deal.value_amount) }}</div>
+          <div class="deal-owner" *ngIf="deal.owner_user_id">Owner ID: {{ deal.owner_user_id.substring(0,8) }}</div>
+
+          <div class="ai-metrics" *ngIf="deal.lead_score !== undefined">
+            <span class="score-badge" [class.high]="deal.lead_score >= 80" [class.medium]="deal.lead_score >= 50 && deal.lead_score < 80" [class.low]="deal.lead_score < 50">
+              Score: {{ deal.lead_score }}
+            </span>
+          </div>
+
+          <div class="ai-actions">
+            <button class="ai-btn score-btn" (click)="scoreDeal(deal); $event.stopPropagation()" [disabled]="scoringJobs()[deal.id]">
+              <span *ngIf="scoringJobs()[deal.id]">Scoring...</span>
+              <span *ngIf="!scoringJobs()[deal.id]">Score Lead</span>
+            </button>
+            <button class="ai-btn draft-btn" (click)="draftFollowUp(deal); $event.stopPropagation()">Draft Follow-Up</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Draft Follow-up Modal -->
+  <div class="modal-overlay" *ngIf="draftModalVisible()">
+    <div class="glassmorphic-modal">
+      <div class="modal-header">
+        <h3>AI Email Draft</h3>
+        <button class="close-btn" (click)="closeDraftModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div *ngIf="draftLoading()" class="loading-spinner">Drafting your email...</div>
+        <textarea *ngIf="!draftLoading()" readonly [value]="draftContent()" class="draft-textarea"></textarea>
+      </div>
+      <div class="modal-footer" *ngIf="!draftLoading()">
+        <button class="copy-btn" (click)="copyToClipboard()">Copy to Clipboard</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Create Deal Modal -->
   <div class="modal-overlay" *ngIf="createModalVisible()">
