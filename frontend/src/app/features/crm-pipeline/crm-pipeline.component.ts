@@ -84,7 +84,7 @@ export class CrmPipelineComponent implements OnInit {
 
     this.crmService.createDeal(payload).subscribe({
       next: (deal) => {
-        this.deals.update(deals => [...deals, deal]);
+        this.loadDeals();
         this.closeCreateModal();
       },
       error: (err) => {
