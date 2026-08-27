@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.tenant_middleware import get_tenant_context, TenantContext
@@ -67,9 +67,11 @@ async def publish_course(
 ):
     return await services.publish_course(db, id, context.organization_id)
 
-@router.post("/quizzes/generate", status_code=status.HTTP_202_ACCEPTED)
+@router.post("/lessons/{id}/quiz", status_code=status.HTTP_202_ACCEPTED)
 async def generate_quiz(
+    id: uuid.UUID,
     request: QuizGenerateRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     context: TenantContext = Depends(require_lms_write)
 ):
@@ -80,12 +82,10 @@ async def generate_quiz(
 
     # 2. Pre-flight Billing Guard (BR-PLT-002) - Deduct 10 AI credits
     await consume_ai_credits_br_plt_002(db, context.organization_id, 10)
+    await db.commit()
 
-    # 3. Dispatch Background Celery Worker
+    # 3. Dispatch Background Worker
     from app.tasks.ai_tasks import generate_ai_quiz
-    task = generate_ai_quiz.delay(
-        str(context.organization_id),
-        request.lesson_id
-    )
+    background_tasks.add_task(generate_ai_quiz, str(context.organization_id), request.lesson_id)
 
-    return {"status": "accepted", "job_id": task.id}
+    return {"status": "accepted"}

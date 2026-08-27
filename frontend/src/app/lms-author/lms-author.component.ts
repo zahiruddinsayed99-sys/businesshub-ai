@@ -102,6 +102,17 @@ export class LmsAuthorComponent {
     });
   }
 
+
+  publishCourse() {
+    if (!this.courseId()) return;
+    this.http.patch<any>(`${environment.apiUrl}/lms/courses/${this.courseId()}/status`, {}).subscribe({
+      next: (res) => {
+        alert('Course published successfully!');
+      },
+      error: (err) => console.error('Failed to publish course:', err)
+    });
+  }
+
   createModule() {
     if (!this.courseId()) return;
     this.http.post<any>(`${environment.apiUrl}/lms/courses/${this.courseId()}/modules`, {
@@ -145,7 +156,7 @@ export class LmsAuthorComponent {
     this.progress.set(10);
     this.quizData.set(null);
 
-    this.http.post<{ job_id: string }>(`${environment.apiUrl}/lms/quizzes/generate`, {
+    this.http.post<{ job_id: string }>(`${environment.apiUrl}/lms/lessons/${this.lessonId()}/quiz`, {
       lesson_id: this.lessonId()
     }).subscribe({
       next: (res) => {

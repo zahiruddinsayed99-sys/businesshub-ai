@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MarkdownModule } from 'ngx-markdown';
 import { HttpClient } from '@angular/common/http';
@@ -13,7 +13,15 @@ import { environment } from '../../environments/environment';
   styleUrls: ['./lms-learner.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class LmsLearnerComponent {
+export class LmsLearnerComponent implements OnInit {
+
+  ngOnInit() {
+    this.http.get<any[]>(`${environment.apiUrl}/lms/courses`).subscribe({
+      next: (res) => this.availableCourses.set(res),
+      error: (err) => console.error('Failed to load courses:', err)
+    });
+  }
+
   private http = inject(HttpClient);
 
   availableCourses = signal<any[]>([]);

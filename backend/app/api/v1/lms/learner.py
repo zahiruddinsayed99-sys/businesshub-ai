@@ -17,12 +17,22 @@ def require_lms_read(context: TenantContext = Depends(get_tenant_context)):
         )
     return context
 
-@router.get("/courses", response_model=list[CourseResponse])
-async def list_available_courses(
+@router.get("/courses")
+async def get_published_courses(
     db: AsyncSession = Depends(get_db),
     context: TenantContext = Depends(require_lms_read)
 ):
-    return await learner_services.get_available_courses(db, context.organization_id)
+    from sqlalchemy import select, and_
+    from app.domain.models.lms import Course
+    stmt = select(Course).where(
+        and_(
+            Course.organization_id == context.organization_id,
+            Course.status == 'PUBLISHED'
+        )
+    )
+    result = await db.execute(stmt)
+    courses = result.scalars().all()
+    return [{"id": str(c.id), "title": c.title, "description": c.description} for c in courses]
 
 @router.get("/enrollments", response_model=list[EnrollmentResponse])
 async def list_enrollments(
@@ -57,7 +67,7 @@ async def get_lesson_quiz(
     if not quiz:
         raise HTTPException(status_code=404, detail="Quiz not found")
     return quiz
-
+  
 @router.post("/enrollments", response_model=EnrollmentResponse)
 async def enroll_course(
     enroll_in: EnrollmentCreate,
