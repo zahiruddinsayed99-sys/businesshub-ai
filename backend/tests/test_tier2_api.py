@@ -127,17 +127,10 @@ async def test_celery_calculate_lead_score_worker(setup_tenants):
     from app.tasks.crm_tasks import calculate_lead_score
     deal_a = setup_tenants["deal_a"]
 
-    from app.tasks.crm_tasks import _calculate_lead_score_async
 
-    # Run the underlying async function to avoid event loop conflicts in pytest-asyncio
-    class MockTask:
-        class Request:
-            retries = 0
-        request = Request()
-        def retry(self, exc, countdown):
-            return Exception("retry")
 
-    result = await _calculate_lead_score_async(MockTask(), deal_a.id)
+
+    result = await calculate_lead_score(deal_a.id)
     # This might fail with ERR_BILLING_001 if credits are exhausted from another test running concurrently
     # But for an isolated integration point we just assert it ran the flow.
     # It either completes, runs duplicate (if idempotency lock acquired), or errors (if no credits or rate limits)
