@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { CdkDragDrop, DragDropModule, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { CrmDealService } from './crm-deal.service';
 import { CrmAiService } from './crm-ai.service';
@@ -12,7 +13,7 @@ import { environment } from '../../../environments/environment';
 @Component({
   selector: 'app-crm-pipeline',
   standalone: true,
-  imports: [CommonModule, DragDropModule],
+  imports: [CommonModule, DragDropModule, FormsModule],
   templateUrl: './crm-pipeline.component.html',
   styleUrls: ['./crm-pipeline.component.scss']
 })
@@ -32,6 +33,92 @@ export class CrmPipelineComponent implements OnInit {
   draftModalVisible = signal<boolean>(false);
   draftContent = signal<string>('');
   draftLoading = signal<boolean>(false);
+
+  createModalVisible = signal<boolean>(false);
+  editModalVisible = signal<boolean>(false);
+
+  newDealData = signal<Partial<CrmDeal>>({
+    title: '',
+    value_amount: 0,
+    currency: 'USD',
+    stage: 'LEAD',
+    expected_close_date: ''
+  });
+
+  editingDealData = signal<Partial<CrmDeal>>({});
+
+  openCreateModal() {
+    this.newDealData.set({
+      title: '',
+      value_amount: 0,
+      currency: 'USD',
+      stage: 'LEAD',
+      expected_close_date: ''
+    });
+    this.createModalVisible.set(true);
+  }
+
+  closeCreateModal() {
+    this.createModalVisible.set(false);
+  }
+
+  submitCreateDeal() {
+    const data = this.newDealData();
+    if (!data.title || !data.value_amount) {
+      this.showErrorToast("Title and Value are required.");
+      return;
+    }
+
+    const payload = {
+       ...data,
+       value_amount: Number(data.value_amount)
+    };
+
+    this.crmService.createDeal(payload).subscribe({
+      next: (deal) => {
+        this.deals.update(deals => [...deals, deal]);
+        this.closeCreateModal();
+      },
+      error: (err) => {
+        console.error(err);
+        this.showErrorToast("Failed to create deal.");
+      }
+    });
+  }
+
+  openEditModal(deal: CrmDeal) {
+    this.editingDealData.set({ ...deal });
+    this.editModalVisible.set(true);
+  }
+
+  closeEditModal() {
+    this.editModalVisible.set(false);
+  }
+
+  submitEditDeal() {
+    const data = this.editingDealData();
+    if (!data.id) return;
+
+    const payload = {
+      title: data.title,
+      value_amount: Number(data.value_amount),
+      currency: data.currency,
+      stage: data.stage,
+      expected_close_date: data.expected_close_date
+    };
+
+    this.crmService.updateDeal(data.id, payload).subscribe({
+      next: (deal) => {
+        this.deals.update(deals => deals.map(d => d.id === deal.id ? deal : d));
+        this.closeEditModal();
+      },
+      error: (err) => {
+        console.error(err);
+        this.showErrorToast("Failed to update deal.");
+      }
+    });
+  }
+
 
   columns = ['LEAD', 'QUALIFIED', 'PROPOSAL', 'WON', 'LOST'];
 
