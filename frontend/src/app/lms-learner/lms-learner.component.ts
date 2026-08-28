@@ -16,7 +16,7 @@ import { environment } from '../../environments/environment';
 export class LmsLearnerComponent implements OnInit {
 
   ngOnInit() {
-    this.http.get<any[]>(`${environment.apiUrl}/lms/courses`).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/lms/catalog`).subscribe({
       next: (res) => this.availableCourses.set(res),
       error: (err) => console.error('Failed to load courses:', err)
     });
@@ -39,7 +39,7 @@ export class LmsLearnerComponent implements OnInit {
   quizResult = signal<any>(null);
 
   loadAvailableCourses() {
-    this.http.get<any[]>(`${environment.apiUrl}/lms/courses`).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/lms/catalog`).subscribe({
       next: (res) => this.availableCourses.set(res),
       error: (err) => console.error('Failed to load courses:', err)
     });

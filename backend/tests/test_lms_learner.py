@@ -164,3 +164,18 @@ async def test_lesson_progress_completion(async_client: AsyncClient, async_db_se
 
     assert enrollment.status == "COMPLETED"
     assert enrollment.completed_at is not None
+
+@pytest.mark.asyncio
+async def test_get_courses_rbac(async_client: AsyncClient, async_db_session, redis_client):
+    org_id = uuid.uuid4()
+    org = Organization(id=org_id, name="Test Org 4", slug=f"test-org-4-{org_id}")
+    async_db_session.add(org)
+    await async_db_session.flush()
+
+    user, token = await create_user_and_token(async_db_session, redis_client, f"learner_courses_{org_id}@lms.com", org, "DOMAIN_MEMBER")
+
+    response = await async_client.get(
+        "/api/v1/lms/catalog",
+        headers={"Authorization": f"Bearer {token}", "X-Organization-Id": str(org_id)},
+    )
+    assert response.status_code == 200
