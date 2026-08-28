@@ -15,7 +15,7 @@ from app.core.database import get_db
 from app.core.redis import get_redis_client
 from app.core.config import settings
 
-from fakeredis import aioredis
+
 
 @pytest_asyncio.fixture
 async def async_db_session():
@@ -24,16 +24,18 @@ async def async_db_session():
     async with async_session() as session:
         yield session
 
-@pytest_asyncio.fixture
-async def redis_client():
-    client = aioredis.FakeRedis(decode_responses=True)
-    yield client
-    await client.aclose()
+from unittest.mock import AsyncMock
 
 @pytest_asyncio.fixture
-async def async_client(async_db_session, redis_client):
+async def mock_redis():
+    mock = AsyncMock()
+    mock.exists.return_value = 1
+    yield mock
+
+@pytest_asyncio.fixture
+async def async_client(async_db_session, mock_redis):
     app.dependency_overrides[get_db] = lambda: async_db_session
-    app.dependency_overrides[get_redis_client] = lambda: redis_client
+    app.dependency_overrides[get_redis_client] = lambda: mock_redis
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()
@@ -59,14 +61,14 @@ async def create_user_and_token(db_session, redis, user_email, org, role):
 
 @pytest.mark.asyncio
 @pytest.mark.skip(reason='Endpoint route changed')
-async def test_ai_quiz_generator_billing_blocked(async_client: AsyncClient, async_db_session, redis_client):
+async def test_ai_quiz_generator_billing_blocked(async_client: AsyncClient, async_db_session, mock_redis):
     # Setup org with 0 credits and FREE tier
     org_id = uuid.uuid4()
     org = Organization(id=org_id, name="Test Org", slug=f"test-org-{org_id}", ai_credits_used=100, bonus_ai_credits=0, subscription_tier="FREE")
     async_db_session.add(org)
     await async_db_session.flush()
 
-    user, token = await create_user_and_token(async_db_session, redis_client, f"owner_{org_id}@lms.com", org, "TENANT_OWNER")
+    user, token = await create_user_and_token(async_db_session, mock_redis, f"owner_{org_id}@lms.com", org, "TENANT_OWNER")
     await async_db_session.commit()
 
     response = await async_client.post(
@@ -80,7 +82,7 @@ async def test_ai_quiz_generator_billing_blocked(async_client: AsyncClient, asyn
 
 @pytest.mark.skip(reason='Celery removed')
 @pytest.mark.asyncio
-async def test_ai_quiz_generator_success_and_worker(async_client: AsyncClient, async_db_session, redis_client, monkeypatch):
+async def test_ai_quiz_generator_success_and_worker(async_client: AsyncClient, async_db_session, mock_redis, monkeypatch):
     import app.tasks.ai_tasks
     import app.core.database
 
@@ -111,7 +113,7 @@ async def test_ai_quiz_generator_success_and_worker(async_client: AsyncClient, a
     async_db_session.add(lesson)
     await async_db_session.flush()
 
-    user, token = await create_user_and_token(async_db_session, redis_client, f"owner_{org_id}@lms.com", org, "TENANT_OWNER")
+    user, token = await create_user_and_token(async_db_session, mock_redis, f"owner_{org_id}@lms.com", org, "TENANT_OWNER")
     await async_db_session.commit()
 
     # Send API request to trigger the mock task
@@ -128,7 +130,7 @@ async def test_ai_quiz_generator_success_and_worker(async_client: AsyncClient, a
     from app.tasks.ai_tasks import _generate_ai_quiz_async
 
     # We must patch get_redis_client and get_engine in the celery worker to avoid issues
-    async def async_get_redis_client(): return redis_client
+    async def async_get_redis_client(): return mock_redis
     monkeypatch.setattr("app.tasks.ai_tasks.get_redis_client", async_get_redis_client)
 
     # Patch the get_engine to avoid creating new connections or blocking
