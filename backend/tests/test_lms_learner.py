@@ -14,7 +14,7 @@ from app.core.database import get_db
 from app.core.redis import get_redis_client
 from app.core.config import settings
 
-from fakeredis import aioredis
+
 
 @pytest_asyncio.fixture
 async def async_db_session():
@@ -24,16 +24,18 @@ async def async_db_session():
     async with async_session() as session:
         yield session
 
-@pytest_asyncio.fixture
-async def redis_client():
-    client = aioredis.FakeRedis(decode_responses=True)
-    yield client
-    await client.aclose()
+from unittest.mock import AsyncMock
 
 @pytest_asyncio.fixture
-async def async_client(async_db_session, redis_client):
+async def mock_redis():
+    mock = AsyncMock()
+    mock.exists.return_value = 1
+    yield mock
+
+@pytest_asyncio.fixture
+async def async_client(async_db_session, mock_redis):
     app.dependency_overrides[get_db] = lambda: async_db_session
-    app.dependency_overrides[get_redis_client] = lambda: redis_client
+    app.dependency_overrides[get_redis_client] = lambda: mock_redis
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()
@@ -58,7 +60,7 @@ async def create_user_and_token(db_session, redis, user_email, org, role):
     return user, token
 
 @pytest.mark.asyncio
-async def test_quiz_scoring_business_logic(async_client: AsyncClient, async_db_session, redis_client):
+async def test_quiz_scoring_business_logic(async_client: AsyncClient, async_db_session, mock_redis):
     # Create org
     org_id = uuid.uuid4()
     org = Organization(id=org_id, name="Test Org", slug=f"test-org-{org_id}")
@@ -66,7 +68,7 @@ async def test_quiz_scoring_business_logic(async_client: AsyncClient, async_db_s
     await async_db_session.flush()
 
     # Create user and enroll
-    user, token = await create_user_and_token(async_db_session, redis_client, f"learner_{org_id}@lms.com", org, "DOMAIN_MEMBER")
+    user, token = await create_user_and_token(async_db_session, mock_redis, f"learner_{org_id}@lms.com", org, "DOMAIN_MEMBER")
 
     # Set up course, module, lesson, quiz
     course = Course(organization_id=org_id, title="Test Course")
@@ -120,13 +122,13 @@ async def test_quiz_scoring_business_logic(async_client: AsyncClient, async_db_s
     assert data_fail["passed"] == False
 
 @pytest.mark.asyncio
-async def test_lesson_progress_completion(async_client: AsyncClient, async_db_session, redis_client):
+async def test_lesson_progress_completion(async_client: AsyncClient, async_db_session, mock_redis):
     org_id = uuid.uuid4()
     org = Organization(id=org_id, name="Test Org 3", slug=f"test-org-3-{org_id}")
     async_db_session.add(org)
     await async_db_session.flush()
 
-    user, token = await create_user_and_token(async_db_session, redis_client, f"learner2_{org_id}@lms.com", org, "DOMAIN_MEMBER")
+    user, token = await create_user_and_token(async_db_session, mock_redis, f"learner2_{org_id}@lms.com", org, "DOMAIN_MEMBER")
 
     # Set up course with 1 lesson
     course = Course(organization_id=org_id, title="Quick Course", status="PUBLISHED")
@@ -165,13 +167,13 @@ async def test_lesson_progress_completion(async_client: AsyncClient, async_db_se
     assert enrollment.completed_at is not None
 
 @pytest.mark.asyncio
-async def test_get_courses_rbac(async_client: AsyncClient, async_db_session, redis_client):
+async def test_get_courses_rbac(async_client: AsyncClient, async_db_session, mock_redis):
     org_id = uuid.uuid4()
     org = Organization(id=org_id, name="Test Org 4", slug=f"test-org-4-{org_id}")
     async_db_session.add(org)
     await async_db_session.flush()
 
-    user, token = await create_user_and_token(async_db_session, redis_client, f"learner_courses_{org_id}@lms.com", org, "DOMAIN_MEMBER")
+    user, token = await create_user_and_token(async_db_session, mock_redis, f"learner_courses_{org_id}@lms.com", org, "DOMAIN_MEMBER")
 
     response = await async_client.get(
         "/api/v1/lms/catalog",
