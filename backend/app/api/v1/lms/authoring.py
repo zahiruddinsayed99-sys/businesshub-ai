@@ -86,6 +86,6 @@ async def generate_quiz(
 
     # 3. Dispatch Background Worker
     from app.tasks.ai_tasks import generate_ai_quiz
-    background_tasks.add_task(generate_ai_quiz, str(context.organization_id), request.lesson_id)
+    background_tasks.add_task(generate_ai_quiz, None, context.organization_id, request.lesson_id)
 
     return {"status": "accepted"}
