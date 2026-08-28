@@ -1,5 +1,6 @@
 import uuid
 import asyncio
+import logging
 
 from app.core.redis import get_redis_client, close_redis_client
 from app.core.database import get_engine
@@ -9,6 +10,7 @@ from app.domain.models.organization_document import OrganizationDocument
 from app.domain.models.ai_job import AiJob
 import time
 
+logger = logging.getLogger(__name__)
 
 async def process_document_embeddings(job_id: uuid.UUID, organization_id: uuid.UUID, document_id: uuid.UUID, text_content: str):
     redis = await get_redis_client()
@@ -57,7 +59,7 @@ async def process_document_embeddings(job_id: uuid.UUID, organization_id: uuid.U
     finally:
         await redis.delete(lock_key)
 
-async def generate_ai_quiz(job_id: uuid.UUID, organization_id: uuid.UUID, lesson_id: uuid.UUID):
+async def generate_ai_quiz(job_id: uuid.UUID | None, organization_id: uuid.UUID, lesson_id: uuid.UUID):
     redis = await get_redis_client()
     lock_key = f"ai_lock:quiz_gen:{str(lesson_id)}"
 
@@ -121,6 +123,7 @@ async def generate_ai_quiz(job_id: uuid.UUID, organization_id: uuid.UUID, lesson
                 await db.commit()
 
             except Exception as e:
+                logger.error(f"Error generating AI quiz for lesson {lesson_id}: {e}", exc_info=True)
                 if job_id:
                     from sqlalchemy import update
                     job_stmt = update(AiJob).where(AiJob.id == job_id).values(
