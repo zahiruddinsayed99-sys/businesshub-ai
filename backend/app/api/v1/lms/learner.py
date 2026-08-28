@@ -10,14 +10,14 @@ from app.domain.lms import learner_services
 router = APIRouter()
 
 def require_lms_read(context: TenantContext = Depends(get_tenant_context)):
-    if not context.role:
+    if not context.role or context.role not in ["OWNER", "TENANT_OWNER", "ADMIN", "TENANT_ADMIN", "LMS_MANAGER", "MEMBER", "DOMAIN_MEMBER", "VIEWER"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={"code": "ERR_RBAC_001", "detail": "Insufficient permissions"}
         )
     return context
 
-@router.get("/courses")
+@router.get("/catalog")
 async def get_published_courses(
     db: AsyncSession = Depends(get_db),
     context: TenantContext = Depends(require_lms_read)
