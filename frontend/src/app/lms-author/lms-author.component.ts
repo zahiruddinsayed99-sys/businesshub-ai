@@ -2,8 +2,8 @@ import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { interval, Subscription } from 'rxjs';
-import { switchMap, takeWhile } from 'rxjs/operators';
+import { interval, Subscription, of } from 'rxjs';
+import { switchMap, takeWhile, catchError, take } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 @Component({
@@ -150,12 +150,14 @@ export class LmsAuthorComponent {
     this.progress.set(10);
     this.quizData.set(null);
 
-    this.http.post<{ job_id: string }>(`${environment.apiUrl}/lms/lessons/${this.lessonId()}/quiz`, {
+    // 1. Fire the generation with the required Pydantic body payload
+    this.http.post<any>(`${environment.apiUrl}/lms/lessons/${this.lessonId()}/quiz`, {
       lesson_id: this.lessonId()
     }).subscribe({
-      next: (res) => {
+      next: () => {
         this.progress.set(25);
-        this.pollJob(res.job_id);
+        // 2. Poll the quiz endpoint directly
+        this.pollQuizCompletion(this.lessonId());
       },
       error: (err) => {
         console.error('Failed to start quiz generation:', err);
@@ -165,38 +167,48 @@ export class LmsAuthorComponent {
     });
   }
 
-  private pollJob(jobId: string) {
+  private pollQuizCompletion(lessonId: string) {
+    const maxAttempts = 20; // 60 seconds total at 3s intervals
+
     this.pollingSub = interval(3000)
       .pipe(
-        switchMap(() => this.http.get<any>(`${environment.apiUrl}/ai/jobs/${jobId}`)),
-        takeWhile(res => res.status !== 'completed' && res.status !== 'failed', true)
+        take(maxAttempts), // Automatically stop the interval after 20 tries
+        switchMap(() =>
+          this.http.get<any>(`${environment.apiUrl}/lms/lessons/${lessonId}/quiz`).pipe(
+            catchError(err => {
+              if (err.status === 404) return of(null);
+              throw err;
+            })
+          )
+        ),
+        takeWhile(res => res === null, true)
       )
       .subscribe({
         next: (res) => {
-          if (res.status === 'processing' || res.status === 'pending') {
+          if (res === null) {
             const currentProgress = this.progress();
             if (currentProgress < 90) {
               this.progress.set(currentProgress + 15);
             }
-          } else if (res.status === 'completed') {
+          } else {
+            // Success!
             this.progress.set(100);
-            this.quizData.set(res.result || {
-              title: "Generated Quiz",
-              questions: [
-                { text: "Sample Question 1", answers: ["A", "B", "C"] }
-              ]
-            });
+            this.quizData.set(res);
             this.isGenerating.set(false);
-          } else if (res.status === 'failed') {
-            this.isGenerating.set(false);
-            this.progress.set(0);
-            console.error('Job failed:', res);
           }
         },
         error: (err) => {
           console.error('Polling error:', err);
           this.isGenerating.set(false);
           this.progress.set(0);
+        },
+        complete: () => {
+          // If the observable completes but we are still in a generating state, it means we hit the maxAttempts limit
+          if (this.isGenerating()) {
+            this.isGenerating.set(false);
+            this.progress.set(0);
+            alert("Quiz generation timed out. The AI task likely failed on the server.");
+          }
         }
       });
   }
