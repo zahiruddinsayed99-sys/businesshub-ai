@@ -129,7 +129,7 @@ async def test_lesson_progress_completion(async_client: AsyncClient, async_db_se
     user, token = await create_user_and_token(async_db_session, redis_client, f"learner2_{org_id}@lms.com", org, "DOMAIN_MEMBER")
 
     # Set up course with 1 lesson
-    course = Course(organization_id=org_id, title="Quick Course")
+    course = Course(organization_id=org_id, title="Quick Course", status="PUBLISHED")
     async_db_session.add(course)
     await async_db_session.flush()
 
@@ -143,9 +143,8 @@ async def test_lesson_progress_completion(async_client: AsyncClient, async_db_se
 
     # Enroll
     enroll_response = await async_client.post(
-        "/api/v1/lms/enrollments",
-        headers={"Authorization": f"Bearer {token}", "X-Organization-Id": str(org_id)},
-        json={"course_id": str(course.id)}
+        f"/api/v1/lms/catalog/{course.id}/enroll",
+        headers={"Authorization": f"Bearer {token}", "X-Organization-Id": str(org_id)}
     )
     assert enroll_response.status_code == 200
 
@@ -164,3 +163,18 @@ async def test_lesson_progress_completion(async_client: AsyncClient, async_db_se
 
     assert enrollment.status == "COMPLETED"
     assert enrollment.completed_at is not None
+
+@pytest.mark.asyncio
+async def test_get_courses_rbac(async_client: AsyncClient, async_db_session, redis_client):
+    org_id = uuid.uuid4()
+    org = Organization(id=org_id, name="Test Org 4", slug=f"test-org-4-{org_id}")
+    async_db_session.add(org)
+    await async_db_session.flush()
+
+    user, token = await create_user_and_token(async_db_session, redis_client, f"learner_courses_{org_id}@lms.com", org, "DOMAIN_MEMBER")
+
+    response = await async_client.get(
+        "/api/v1/lms/catalog",
+        headers={"Authorization": f"Bearer {token}", "X-Organization-Id": str(org_id)},
+    )
+    assert response.status_code == 200

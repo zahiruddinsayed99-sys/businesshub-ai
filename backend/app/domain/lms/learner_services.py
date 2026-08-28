@@ -39,6 +39,7 @@ async def get_enrolled_course_detail(session: AsyncSession, organization_id: uui
         and_(
             Course.id == course_id,
             Course.organization_id == organization_id,
+            Course.status == "PUBLISHED",
             Course.deleted_at.is_(None)
         )
     )
@@ -64,10 +65,10 @@ async def enroll_user(
     session: AsyncSession, organization_id: uuid.UUID, user_id: uuid.UUID, course_id: uuid.UUID
 ) -> CourseEnrollment:
     # Validate course exists in org
-    stmt = select(Course).where(and_(Course.id == course_id, Course.organization_id == organization_id))
+    stmt = select(Course).where(and_(Course.id == course_id, Course.organization_id == organization_id, Course.status == "PUBLISHED"))
     result = await session.execute(stmt)
     if not result.scalars().first():
-        raise HTTPException(status_code=404, detail={"code": "ERR_NOT_FOUND_001", "detail": "Course not found"})
+        raise HTTPException(status_code=404, detail={"code": "ERR_NOT_FOUND_001", "detail": "Course not found or not published"})
 
     enrollment = CourseEnrollment(
         organization_id=organization_id,

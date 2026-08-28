@@ -16,7 +16,7 @@ import { environment } from '../../environments/environment';
 export class LmsLearnerComponent implements OnInit {
 
   ngOnInit() {
-    this.http.get<any[]>(`${environment.apiUrl}/lms/courses`).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/lms/catalog`).subscribe({
       next: (res) => this.availableCourses.set(res),
       error: (err) => console.error('Failed to load courses:', err)
     });
@@ -39,7 +39,7 @@ export class LmsLearnerComponent implements OnInit {
   quizResult = signal<any>(null);
 
   loadAvailableCourses() {
-    this.http.get<any[]>(`${environment.apiUrl}/lms/courses`).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/lms/catalog`).subscribe({
       next: (res) => this.availableCourses.set(res),
       error: (err) => console.error('Failed to load courses:', err)
     });
@@ -57,7 +57,7 @@ export class LmsLearnerComponent implements OnInit {
   }
 
   enrollCourse(courseId: string) {
-    this.http.post<any>(`${environment.apiUrl}/lms/enrollments`, { course_id: courseId }).subscribe({
+    this.http.post<any>(`${environment.apiUrl}/lms/catalog/${courseId}/enroll`, {}).subscribe({
       next: (res) => {
         alert('Enrolled successfully!');
         this.loadEnrollments();
@@ -67,7 +67,7 @@ export class LmsLearnerComponent implements OnInit {
   }
 
   openCourse(courseId: string) {
-    this.http.get<any>(`${environment.apiUrl}/lms/courses/${courseId}`).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/lms/catalog/${courseId}`).subscribe({
       next: (res) => {
         this.enrolledCourseDetail.set(res);
         const enrollment = this.enrollments().find(e => e.course_id === courseId);
@@ -87,7 +87,7 @@ export class LmsLearnerComponent implements OnInit {
   }
 
   loadProgress(courseId: string) {
-    this.http.get<any[]>(`${environment.apiUrl}/lms/courses/${courseId}/progress`).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/lms/catalog/${courseId}/progress`).subscribe({
       next: (res) => this.lessonProgresses.set(res),
       error: (err) => console.error('Failed to load progress:', err)
     });
