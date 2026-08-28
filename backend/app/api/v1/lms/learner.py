@@ -41,7 +41,7 @@ async def list_enrollments(
 ):
     return await learner_services.get_user_enrollments(db, context.organization_id, context.user_id)
 
-@router.get("/courses/{id}", response_model=CourseDetailResponse)
+@router.get("/catalog/{id}", response_model=CourseDetailResponse)
 async def get_enrolled_course_detail(
     id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -49,7 +49,7 @@ async def get_enrolled_course_detail(
 ):
     return await learner_services.get_enrolled_course_detail(db, context.organization_id, context.user_id, id)
 
-@router.get("/courses/{id}/progress", response_model=list[ProgressResponse])
+@router.get("/catalog/{id}/progress", response_model=list[ProgressResponse])
 async def get_course_progress(
     id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -68,14 +68,14 @@ async def get_lesson_quiz(
         raise HTTPException(status_code=404, detail="Quiz not found")
     return quiz
   
-@router.post("/enrollments", response_model=EnrollmentResponse)
+@router.post("/catalog/{course_id}/enroll", response_model=EnrollmentResponse)
 async def enroll_course(
-    enroll_in: EnrollmentCreate,
+    course_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     context: TenantContext = Depends(require_lms_read)
 ):
     return await learner_services.enroll_user(
-        db, context.organization_id, context.user_id, enroll_in.course_id
+        db, context.organization_id, context.user_id, course_id
     )
 
 @router.post("/lessons/{id}/progress", response_model=ProgressResponse)
