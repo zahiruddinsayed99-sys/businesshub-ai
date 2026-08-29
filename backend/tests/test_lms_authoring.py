@@ -13,7 +13,7 @@ from app.core.database import get_db
 from app.core.redis import get_redis_client
 from app.core.config import settings
 
-from fakeredis import aioredis
+
 
 @pytest_asyncio.fixture
 async def async_db_session():
@@ -23,16 +23,18 @@ async def async_db_session():
     async with async_session() as session:
         yield session
 
-@pytest_asyncio.fixture
-async def redis_client():
-    client = aioredis.FakeRedis(decode_responses=True)
-    yield client
-    await client.aclose()
+from unittest.mock import AsyncMock
 
 @pytest_asyncio.fixture
-async def async_client(async_db_session, redis_client):
+async def mock_redis():
+    mock = AsyncMock()
+    mock.exists.return_value = 1
+    yield mock
+
+@pytest_asyncio.fixture
+async def async_client(async_db_session, mock_redis):
     app.dependency_overrides[get_db] = lambda: async_db_session
-    app.dependency_overrides[get_redis_client] = lambda: redis_client
+    app.dependency_overrides[get_redis_client] = lambda: mock_redis
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()
@@ -58,13 +60,13 @@ async def create_user_and_token(db_session, redis, user_email, org, role):
     return user, token
 
 @pytest.mark.asyncio
-async def test_create_course_success(async_client: AsyncClient, async_db_session, redis_client):
+async def test_create_course_success(async_client: AsyncClient, async_db_session, mock_redis):
     org_id = uuid.uuid4()
     org = Organization(id=org_id, name="Test Org", slug=f"test-org-{org_id}")
     async_db_session.add(org)
     await async_db_session.flush()
 
-    user, token = await create_user_and_token(async_db_session, redis_client, f"owner_{org_id}@lms.com", org, "TENANT_OWNER")
+    user, token = await create_user_and_token(async_db_session, mock_redis, f"owner_{org_id}@lms.com", org, "TENANT_OWNER")
     await async_db_session.commit()
 
     response = await async_client.post(
@@ -79,13 +81,13 @@ async def test_create_course_success(async_client: AsyncClient, async_db_session
     assert data["status"] == "DRAFT"
 
 @pytest.mark.asyncio
-async def test_create_course_rbac_failure(async_client: AsyncClient, async_db_session, redis_client):
+async def test_create_course_rbac_failure(async_client: AsyncClient, async_db_session, mock_redis):
     org_id = uuid.uuid4()
     org = Organization(id=org_id, name="Test Org 2", slug=f"test-org-2-{org_id}")
     async_db_session.add(org)
     await async_db_session.flush()
 
-    user, token = await create_user_and_token(async_db_session, redis_client, f"member_{org_id}@lms.com", org, "DOMAIN_MEMBER")
+    user, token = await create_user_and_token(async_db_session, mock_redis, f"member_{org_id}@lms.com", org, "DOMAIN_MEMBER")
     await async_db_session.commit()
 
     response = await async_client.post(
@@ -97,7 +99,7 @@ async def test_create_course_rbac_failure(async_client: AsyncClient, async_db_se
     assert response.status_code == 403
 
 @pytest.mark.asyncio
-async def test_get_course_cross_tenant_lookup(async_client: AsyncClient, async_db_session, redis_client):
+async def test_get_course_cross_tenant_lookup(async_client: AsyncClient, async_db_session, mock_redis):
     org1_id = uuid.uuid4()
     org1 = Organization(id=org1_id, name="Test Org 1", slug=f"test-org-1-{org1_id}")
 
@@ -107,7 +109,7 @@ async def test_get_course_cross_tenant_lookup(async_client: AsyncClient, async_d
     async_db_session.add_all([org1, org2])
     await async_db_session.flush()
 
-    user, token = await create_user_and_token(async_db_session, redis_client, f"owner_{org2_id}@lms.com", org2, "TENANT_OWNER")
+    user, token = await create_user_and_token(async_db_session, mock_redis, f"owner_{org2_id}@lms.com", org2, "TENANT_OWNER")
     await async_db_session.commit()
 
     # Create a course in org1

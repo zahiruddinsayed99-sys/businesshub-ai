@@ -1,0 +1,34 @@
+<div class="app-layout">
+  <!-- Side Menu -->
+  <aside class="sidebar">
+    <div class="logo">
+      <h3>BusinessHub AI</h3>
+    </div>
+    <nav class="nav-menu">
+      <a routerLink="/crm" routerLinkActive="active" class="nav-item">CRM</a>
+      <a routerLink="/ai" routerLinkActive="active" class="nav-item">AI Platform</a>
+      <a routerLink="/lms-learner" routerLinkActive="active" class="nav-item">LMS Learner</a>
+      <a routerLink="/lms-author" *ngIf="userRole() === 'TENANT_OWNER' || userRole() === 'TENANT_ADMIN' || userRole() === 'LMS_MANAGER' || userRole() === 'SUPER_ADMIN'" routerLinkActive="active" class="nav-item">LMS Author</a>
+      <a routerLink="/billing" *ngIf="userRole() === 'TENANT_OWNER' || userRole() === 'TENANT_ADMIN' || userRole() === 'SUPER_ADMIN'" routerLinkActive="active" class="nav-item">Billing</a>
+      <a routerLink="/settings" *ngIf="userRole() === 'TENANT_OWNER' || userRole() === 'TENANT_ADMIN' || userRole() === 'SUPER_ADMIN'" routerLinkActive="active" class="nav-item">Settings</a>
+      <a routerLink="/admin/tenant" *ngIf="userRole() === 'SUPER_ADMIN'" routerLinkActive="active" class="nav-item">Tenant Manager</a>
+    </nav>
+  </aside>
+
+  <!-- Main Content Area -->
+  <div class="main-content">
+    <!-- Top Bar -->
+    <header class="top-bar">
+      <div class="spacer"></div>
+      <div class="user-profile">
+        <span class="user-name">Welcome, {{ userName() }}</span>
+        <button (click)="logout()" class="btn-logout">Logout</button>
+      </div>
+    </header>
+
+    <!-- Page Content Wrapper -->
+    <main class="page-content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>

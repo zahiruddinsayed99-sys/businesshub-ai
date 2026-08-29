@@ -17,10 +17,13 @@ import { environment } from '../../../environments/environment';
 })
 export class AiDashboardComponent implements OnDestroy {
   uploadForm;
+  chatForm;
 
   jobId = signal<string | null>(null);
   jobStatus = signal<string | null>(null);
   jobProgress = signal<number>(0);
+
+  messages = signal<{ role: 'user' | 'assistant', content: string }[]>([]);
 
   private pollingSubscription?: Subscription;
 
@@ -29,15 +32,38 @@ export class AiDashboardComponent implements OnDestroy {
       title: ['', Validators.required],
       content: ['', Validators.required]
     });
+    this.chatForm = this.fb.group({
+      message: ['', Validators.required]
+    });
+  }
+
+  sendMessage() {
+    if (this.chatForm.invalid) return;
+
+    const msg = this.chatForm.value.message || '';
+    this.chatForm.reset();
+
+    // Append user message
+    this.messages.update(m => [...m, { role: 'user', content: msg }]);
+
+    this.http.post<{ reply: string }>(`${environment.apiUrl}/ai/chat`, { message: msg })
+      .subscribe({
+        next: (res) => {
+          this.messages.update(m => [...m, { role: 'assistant', content: res.reply }]);
+        },
+        error: (err) => {
+          console.error(err);
+          this.messages.update(m => [...m, { role: 'assistant', content: 'Sorry, failed to get a response.' }]);
+        }
+      });
   }
 
   onUpload() {
     if (this.uploadForm.invalid) return;
 
     const payload = this.uploadForm.value;
-
     // Assume Tenant interceptor attaches auth and X-Organization-Id
-    this.http.post<{job_id: string}>(`${environment.apiUrl}/ai/documents/upload`, payload)
+    this.http.post<{ job_id: string }>(`${environment.apiUrl}/ai/documents/upload`, payload)
       .pipe(
         catchError(err => {
           console.error(err);
@@ -62,11 +88,11 @@ export class AiDashboardComponent implements OnDestroy {
 
     this.pollingSubscription = interval(2000)
       .pipe(
-        switchMap(() => this.http.get<{status: string, result: any}>(`${environment.apiUrl}/ai/jobs/${jobId}`)),
+        switchMap(() => this.http.get<{ status: string, result: any }>(`${environment.apiUrl}/ai/jobs/${jobId}`)),
         takeWhile(res => res.status !== 'SUCCESS' && res.status !== 'FAILURE', true),
         catchError(err => {
           console.error(err);
-          return of({status: 'FAILURE', result: null});
+          return of({ status: 'FAILURE', result: null });
         })
       )
       .subscribe(res => {

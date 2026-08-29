@@ -4,26 +4,78 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.tenant_middleware import get_tenant_context, TenantContext
 from app.domain.lms.learner_schemas import EnrollmentCreate, EnrollmentResponse, ProgressUpdate, ProgressResponse, QuizSubmission, QuizResult
+from app.domain.lms.schemas import CourseResponse, CourseDetailResponse, QuizResponseModel
 from app.domain.lms import learner_services
 
 router = APIRouter()
 
 def require_lms_read(context: TenantContext = Depends(get_tenant_context)):
-    if not context.role:
+    if not context.role or context.role not in ["OWNER", "TENANT_OWNER", "ADMIN", "TENANT_ADMIN", "LMS_MANAGER", "MEMBER", "DOMAIN_MEMBER", "VIEWER"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={"code": "ERR_RBAC_001", "detail": "Insufficient permissions"}
         )
     return context
 
-@router.post("/enrollments", response_model=EnrollmentResponse)
+@router.get("/catalog")
+async def get_published_courses(
+    db: AsyncSession = Depends(get_db),
+    context: TenantContext = Depends(require_lms_read)
+):
+    from sqlalchemy import select, and_
+    from app.domain.models.lms import Course
+    stmt = select(Course).where(
+        and_(
+            Course.organization_id == context.organization_id,
+            Course.status == 'PUBLISHED'
+        )
+    )
+    result = await db.execute(stmt)
+    courses = result.scalars().all()
+    return [{"id": str(c.id), "title": c.title, "description": c.description} for c in courses]
+
+@router.get("/enrollments", response_model=list[EnrollmentResponse])
+async def list_enrollments(
+    db: AsyncSession = Depends(get_db),
+    context: TenantContext = Depends(require_lms_read)
+):
+    return await learner_services.get_user_enrollments(db, context.organization_id, context.user_id)
+
+@router.get("/catalog/{id}", response_model=CourseDetailResponse)
+async def get_enrolled_course_detail(
+    id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    context: TenantContext = Depends(require_lms_read)
+):
+    return await learner_services.get_enrolled_course_detail(db, context.organization_id, context.user_id, id)
+
+@router.get("/catalog/{id}/progress", response_model=list[ProgressResponse])
+async def get_course_progress(
+    id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    context: TenantContext = Depends(require_lms_read)
+):
+    return await learner_services.get_user_lesson_progresses(db, context.organization_id, context.user_id, id)
+
+@router.get("/lessons/{id}/quiz", response_model=QuizResponseModel)
+async def get_lesson_quiz(
+    id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    context: TenantContext = Depends(require_lms_read)
+):
+    quiz = await learner_services.get_lesson_quiz(db, context.organization_id, id)
+    if not quiz:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    return quiz
+  
+@router.post("/catalog/{course_id}/enroll", response_model=EnrollmentResponse)
 async def enroll_course(
-    enroll_in: EnrollmentCreate,
+    course_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     context: TenantContext = Depends(require_lms_read)
 ):
     return await learner_services.enroll_user(
-        db, context.organization_id, context.user_id, enroll_in.course_id
+        db, context.organization_id, context.user_id, course_id
     )
 
 @router.post("/lessons/{id}/progress", response_model=ProgressResponse)

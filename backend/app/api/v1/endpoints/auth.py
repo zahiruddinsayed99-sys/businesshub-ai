@@ -33,6 +33,7 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int = 900
+    organization_id: Optional[str] = None
 
 
 @router.post("/onboard", status_code=status.HTTP_201_CREATED)
@@ -179,6 +180,12 @@ async def login(
         ttl_seconds=7 * 24 * 3600,
     )
 
+    # Extract organization_id from user role
+    roles_org_stmt = select(UserRole.organization_id).where(UserRole.user_id == user.id)
+    roles_org_res = await db.execute(roles_org_stmt)
+    org_id_obj = roles_org_res.scalars().first()
+    org_id_str = str(org_id_obj) if org_id_obj else None
+
     # Serve refresh token strictly via HttpOnly, SameSite=Strict cookie
     response.set_cookie(
         key="refresh_token",
@@ -189,7 +196,7 @@ async def login(
         max_age=7 * 24 * 3600,
     )
 
-    return TokenResponse(access_token=access_token, token_type="bearer", expires_in=900)
+    return TokenResponse(access_token=access_token, token_type="bearer", expires_in=900, organization_id=org_id_str)
 
 
 @router.post("/logout")

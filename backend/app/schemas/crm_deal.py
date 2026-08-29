@@ -6,7 +6,7 @@ from datetime import datetime
 class CrmDealBase(BaseModel):
     title: str
     value_amount: float
-    currency: str = "USD"
+    currency: str = "INR"
     stage: str = "LEAD"
     contact_id: Optional[uuid.UUID] = None
     owner_user_id: Optional[uuid.UUID] = None
@@ -32,5 +32,8 @@ class CrmDealResponse(CrmDealBase):
     organization_id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    lead_score: Optional[int] = None
+    intent_signals: Optional[list] = None
+    last_scored_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)

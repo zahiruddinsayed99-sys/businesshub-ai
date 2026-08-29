@@ -1,18 +1,19 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { CdkDragDrop, DragDropModule, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { CrmDealService } from './crm-deal.service';
 import { CrmAiService } from './crm-ai.service';
 import { CrmDeal } from './crm-deal.model';
-import { catchError } from 'rxjs/operators';
-import { of, Subject, Subscription, timer } from 'rxjs';
-import { debounceTime, switchMap, takeWhile } from 'rxjs/operators';
+import { Subject, timer } from 'rxjs';
+import { switchMap, takeWhile, debounceTime } from 'rxjs/operators';
+import { environment } from '../../../environments/environment';
 
-// Mock auth service for getting current user
 @Component({
   selector: 'app-crm-pipeline',
   standalone: true,
-  imports: [CommonModule, DragDropModule],
+  imports: [CommonModule, DragDropModule, FormsModule],
   templateUrl: './crm-pipeline.component.html',
   styleUrls: ['./crm-pipeline.component.scss']
 })
@@ -20,24 +21,130 @@ export class CrmPipelineComponent implements OnInit {
   private stageUpdateSubject = new Subject<{ deal: CrmDeal, newStage: string, oldStage: string }>();
   private crmService = inject(CrmDealService);
   private crmAiService = inject(CrmAiService);
+  private http = inject(HttpClient);
 
-  // Use Signals for state management
   deals = signal<CrmDeal[]>([]);
   filterMode = signal<'ALL' | 'MINE'>('ALL');
-  currentUserId = signal<string | null>(null); // Ideally from an auth service
+  currentUserId = signal<string | null>(null);
   errorToast = signal<string | null>(null);
 
-  // Scoring state
-  scoringJobs = signal<Record<string, string>>({}); // deal_id -> job_id
+  scoringJobs = signal<Record<string, string>>({});
 
-  // Follow-up draft state
   draftModalVisible = signal<boolean>(false);
   draftContent = signal<string>('');
   draftLoading = signal<boolean>(false);
 
+  createModalVisible = signal<boolean>(false);
+  editModalVisible = signal<boolean>(false);
+
+  newDealData = signal<Partial<CrmDeal>>({
+    title: '',
+    value_amount: 0,
+    currency: 'INR',
+    stage: 'LEAD',
+    expected_close_date: ''
+  });
+
+  editingDealData = signal<Partial<CrmDeal>>({});
+
+  openCreateModal() {
+    this.newDealData.set({
+      title: '',
+      value_amount: 0,
+      currency: 'INR',
+      stage: 'LEAD',
+      expected_close_date: ''
+    });
+    this.createModalVisible.set(true);
+  }
+
+  closeCreateModal() {
+    this.createModalVisible.set(false);
+  }
+
+  submitCreateDeal() {
+    const data = this.newDealData();
+    if (!data.title || !data.value_amount) {
+      this.showErrorToast("Title and Value are required.");
+      return;
+    }
+
+    const payload: any = {
+      title: data.title,
+      value_amount: Number(data.value_amount),
+      currency: data.currency || 'INR',
+      stage: data.stage
+    };
+
+    if (data.expected_close_date && data.expected_close_date.trim() !== '') {
+      payload.expected_close_date = data.expected_close_date;
+    } else {
+      payload.expected_close_date = null;
+    }
+
+    this.crmService.createDeal(payload).subscribe({
+      next: (deal) => {
+        this.loadDeals();
+        this.closeCreateModal();
+      },
+      error: (err) => {
+        console.error(err);
+        this.showErrorToast("Failed to create deal.");
+      }
+    });
+  }
+
+  openEditModal(deal: CrmDeal) {
+    this.editingDealData.set({ ...deal });
+    this.editModalVisible.set(true);
+  }
+
+  closeEditModal() {
+    this.editModalVisible.set(false);
+  }
+
+  submitEditDeal() {
+    const data = this.editingDealData();
+    if (!data.id) return;
+
+    const payload: any = {
+      title: data.title,
+      value_amount: Number(data.value_amount),
+      currency: data.currency || 'INR',
+      stage: data.stage
+    };
+
+    if (data.expected_close_date && typeof data.expected_close_date === 'string' && data.expected_close_date.trim() !== '') {
+      payload.expected_close_date = data.expected_close_date;
+    } else if (!data.expected_close_date || (typeof data.expected_close_date === 'string' && data.expected_close_date.trim() === '')) {
+      payload.expected_close_date = null;
+    }
+
+    this.crmService.updateDeal(data.id, payload).subscribe({
+      next: (deal) => {
+        this.loadDeals();
+        this.closeEditModal();
+      },
+      error: (err) => {
+        console.error(err);
+        this.showErrorToast("Failed to update deal.");
+      }
+    });
+  }
+
+
+
+  formatCurrency(value: number): string {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    }).format(value);
+  }
+
   columns = ['LEAD', 'QUALIFIED', 'PROPOSAL', 'WON', 'LOST'];
 
-  // Computed signal to filter deals based on toggle
   filteredDeals = computed(() => {
     const all = this.deals();
     const mode = this.filterMode();
@@ -51,12 +158,12 @@ export class CrmPipelineComponent implements OnInit {
 
   ngOnInit() {
     this.stageUpdateSubject.pipe(
-      debounceTime(500)
+      debounceTime(300)
     ).subscribe(({ deal, newStage, oldStage }) => {
       this.crmService.updateDealStage(deal.id, newStage).subscribe({
         error: (err) => {
           console.error(err);
-          // Rollback on failure
+          // Rollback on failure (Optimistic UI fallback)
           this.deals.update(deals => {
             return deals.map(d =>
               d.id === deal.id ? { ...d, stage: oldStage } : d
@@ -66,18 +173,30 @@ export class CrmPipelineComponent implements OnInit {
         }
       });
     });
-    // In a real app, we'd get this from a real Auth service
-    const me = localStorage.getItem('user_id'); // Just an example
+
+    const me = localStorage.getItem('user_id');
     if (me) {
       this.currentUserId.set(me);
+      this.loadDeals();
     } else {
-      // Fetch /api/v1/auth/me here to get user ID if needed,
-      // but for testing we can assume it works if we have it in memory somewhere
-      fetch('/api/v1/auth/me').then(r => r.json()).then(data => {
-        if (data.user_id) this.currentUserId.set(data.user_id);
-      }).catch(e => console.error(e));
+      this.http.get<any>(`${environment.apiUrl}/auth/me`).subscribe({
+        next: (data) => {
+          if (data.user_id) {
+            this.currentUserId.set(data.user_id);
+            try {
+              if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('user_id', data.user_id);
+              }
+            } catch (e) { }
+          }
+          this.loadDeals();
+        },
+        error: (e) => {
+          console.error(e);
+          this.loadDeals(); // Try anyway, let it fail cleanly
+        }
+      });
     }
-    this.loadDeals();
   }
 
   loadDeals() {
@@ -97,25 +216,24 @@ export class CrmPipelineComponent implements OnInit {
 
   drop(event: CdkDragDrop<CrmDeal[]>, newStage: string) {
     if (event.previousContainer === event.container) {
-      // Reordering in same column (optional)
       const list = event.container.data;
       moveItemInArray(list, event.previousIndex, event.currentIndex);
     } else {
       const deal = event.previousContainer.data[event.previousIndex];
       const oldStage = deal.stage;
 
-      // Optimistic update
+      // Optimistic update: instantly move the deal locally
       this.deals.update(deals => {
         return deals.map(d =>
           d.id === deal.id ? { ...d, stage: newStage } : d
         );
       });
 
-      // API Call with debounce/immediate
+      // API Call execution
       this.stageUpdateSubject.next({ deal, newStage, oldStage });
-      this.showErrorToast("Failed to update deal stage. Rolled back.");
     }
-  };
+  }
+
   showErrorToast(msg: string) {
     this.errorToast.set(msg);
     setTimeout(() => this.errorToast.set(null), 3000);
@@ -123,9 +241,13 @@ export class CrmPipelineComponent implements OnInit {
 
   scoreDeal(deal: CrmDeal) {
     this.crmAiService.scoreDeal(deal.id).subscribe({
-      next: (response) => {
-        this.scoringJobs.update(jobs => ({ ...jobs, [deal.id]: response.job_id }));
-        this.pollJobStatus(response.job_id, deal.id);
+      next: () => {
+        // 1. Mark as pending in the UI so a spinner/badge can show
+        this.scoringJobs.update(jobs => ({ ...jobs, [deal.id]: 'pending' }));
+
+        // 2. Fire and forget - NO polling!
+        // Replace this with this.showSuccessToast if you have that method available
+        alert("AI scoring started in the background. Click the refresh icon on the deal later to check the result.");
       },
       error: (err) => {
         console.error('Failed to trigger score', err);
@@ -134,37 +256,39 @@ export class CrmPipelineComponent implements OnInit {
     });
   }
 
-  private pollJobStatus(jobId: string, dealId: string) {
-    timer(0, 2000).pipe(
-      switchMap(() => this.crmAiService.getJobStatus(jobId)),
-      takeWhile(res => res.status === 'PENDING' || res.status === 'STARTED', true)
-    ).subscribe({
-      next: (res) => {
-        if (res.status === 'SUCCESS' && res.result?.status === 'completed') {
-          // Re-fetch deals or update signal directly if API returned full score.
-          // The celery task just updates the DB, so we reload deals to see changes
-          this.loadDeals();
+  refreshDealScore(dealId: string) {
+    // 1. Add a cache-buster timestamp to prevent the browser from serving stale data
+    const timestamp = new Date().getTime();
+
+    this.http.get<any>(`${environment.apiUrl}/crm/deals/${dealId}?_cb=${timestamp}`).subscribe({
+      next: (response) => {
+        // Log it so we can see the exact shape of the data in the browser console
+        console.log("Raw API Response:", response);
+
+        // 2. Handle potential API wrappers (if backend sends { data: {...} })
+        const updatedDeal = response.data ? response.data : response;
+
+        if (updatedDeal.lead_score !== null && updatedDeal.lead_score !== undefined) {
+
+          // Clear the pending state
           this.scoringJobs.update(jobs => {
             const newJobs = { ...jobs };
             delete newJobs[dealId];
             return newJobs;
           });
-        } else if (res.status === 'FAILURE') {
-          this.showErrorToast("AI Scoring job failed.");
-          this.scoringJobs.update(jobs => {
-            const newJobs = { ...jobs };
-            delete newJobs[dealId];
-            return newJobs;
-          });
+
+          // 3. Force the UI to reflect the new data.
+          // The easiest brute-force way to update the Kanban board is to just 
+          // reload the entire list of deals from the backend:
+          // this.loadDeals(); // <-- UNCOMMENT OR REPLACE with your actual load method!
+
+        } else {
+          alert("Scoring is still in progress. Please try again in a moment.");
         }
       },
       error: (err) => {
-        console.error('Polling failed', err);
-        this.scoringJobs.update(jobs => {
-          const newJobs = { ...jobs };
-          delete newJobs[dealId];
-          return newJobs;
-        });
+        console.error('Failed to fetch updated deal', err);
+        // this.showErrorToast("Failed to refresh deal score.");
       }
     });
   }
@@ -198,4 +322,3 @@ export class CrmPipelineComponent implements OnInit {
     });
   }
 }
-

@@ -1,0 +1,63 @@
+<div class="glass-dashboard">
+  <h2>LMS Learner Dashboard</h2>
+
+  <div class="courses-list" *ngIf="!activeEnrollment()">
+    <h3>Available Courses</h3>
+    <div class="course-card" *ngFor="let c of availableCourses()">
+      <h4>{{ c.title }}</h4>
+      <p>{{ c.description }}</p>
+      <button *ngIf="!isEnrolled(c.id)" (click)="enrollCourse(c.id)">Enroll</button>
+      <button *ngIf="isEnrolled(c.id)" (click)="openCourse(c.id)">Open Course</button>
+    </div>
+  </div>
+
+  <div class="enrollment-card" *ngIf="activeEnrollment() && enrolledCourseDetail()">
+    <button (click)="activeEnrollment.set(null)">Back to Catalog</button>
+    <h3>{{ activeEnrollment().courseTitle }}</h3>
+    <div class="status-row">
+      <span>Status: {{ activeEnrollment().status }}</span>
+    </div>
+
+    <div class="course-content">
+      <div class="module-card" *ngFor="let mod of enrolledCourseDetail().modules">
+        <h4>{{ mod.title }}</h4>
+        <ul>
+          <li *ngFor="let lesson of mod.lessons">
+            <a (click)="viewLesson(lesson)" style="cursor: pointer; color: blue; text-decoration: underline;">
+              {{ lesson.title }}
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="lesson-player" *ngIf="activeLesson() && activeEnrollment()">
+    <h3>{{ activeLesson().title }}</h3>
+    <div class="markdown-container">
+      <markdown [data]="activeLesson().content_body || ''"></markdown>
+    </div>
+    <button (click)="markLessonComplete(activeLesson().id)">Mark Complete</button>
+    <button (click)="takeQuiz(activeLesson().id)">Take Quiz</button>
+  </div>
+
+  <div class="quiz-player" *ngIf="quizData() && activeLesson()">
+    <h3>Quiz: {{ quizData().title }}</h3>
+    <div *ngFor="let q of quizData().questions; let i = index">
+      <p><strong>Q{{ i + 1 }}:</strong> {{ q.question_text }}</p>
+      <div *ngFor="let a of q.answers; let j = index">
+        <label>
+          <input type="radio" [name]="'q' + i" [value]="a.id" (change)="selectAnswer(q.id, a.id)" />
+          {{ a.answer_text }}
+        </label>
+      </div>
+    </div>
+    <button (click)="submitQuiz()">Submit Answers</button>
+  </div>
+
+  <div class="quiz-result" *ngIf="quizResult()">
+    <h1 *ngIf="quizResult().passed" style="color: green;">PASS</h1>
+    <h1 *ngIf="!quizResult().passed" style="color: red;">FAIL</h1>
+    <p>Score: {{ quizResult().score }}</p>
+  </div>
+</div>

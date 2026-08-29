@@ -57,7 +57,8 @@ class CrmDealRepository:
             if hasattr(deal, key):
                 setattr(deal, key, value)
 
-        await self.db.flush()
+        await self.db.commit()
+        await self.db.refresh(deal)
         return deal
 
     async def delete(self, deal_id: uuid.UUID, organization_id: uuid.UUID, role: str) -> None:
@@ -69,9 +70,10 @@ class CrmDealRepository:
 
         deal = await self._get_deal_or_404(deal_id, organization_id)
         deal.deleted_at = datetime.now(timezone.utc)
-        await self.db.flush()
+        await self.db.commit()
 
     async def create(self, deal: CrmDeal) -> CrmDeal:
         self.db.add(deal)
-        await self.db.flush()
+        await self.db.commit()
+        await self.db.refresh(deal)
         return deal

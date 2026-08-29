@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy, signal, inject } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-billing-dashboard',
@@ -32,14 +33,21 @@ export class BillingDashboardComponent {
     this.loadBillingInfo();
   }
 
+  successToast = signal<boolean>(false);
+
   loadBillingInfo() {
-    this.http.get<any>('/api/v1/organizations/me').subscribe(res => {
+    this.http.get<any>(`${environment.apiUrl}/organizations/me`).subscribe(res => {
       this.subscriptionTier.set(res.subscription_tier || 'FREE');
       this.activePlanStatus.set(res.subscription_status || 'INACTIVE');
       this.creditsUsed.set(res.ai_credits_used || 0);
       this.creditsMax.set(100 + (res.bonus_ai_credits || 0));
       this.seatsUsed.set(res.user_count || 1);
       this.seatsMax.set(3);
+
+      this.gstinForm.patchValue({
+        gstin: res.gstin || '',
+        billingState: res.billing_state || ''
+      });
 
       if (this.subscriptionTier() === 'FREE' && this.seatsUsed() > this.seatsMax()) {
         this.isSoftLocked.set(true);
@@ -49,19 +57,35 @@ export class BillingDashboardComponent {
 
   saveGstin() {
     if (this.gstinForm.valid) {
-      this.http.patch('/api/v1/organizations/me', this.gstinForm.value).subscribe();
+      this.http.patch(`${environment.apiUrl}/organizations/me`, {
+        gstin: this.gstinForm.value.gstin,
+        billing_state: this.gstinForm.value.billingState
+      }).subscribe({
+        next: () => {
+          this.successToast.set(true);
+          setTimeout(() => this.successToast.set(false), 3000);
+        }
+      });
     }
   }
 
   onCheckout() {
-    this.http.post<{url: string}>('/api/v1/billing/checkout', {}).subscribe(res => {
-      window.location.href = res.url;
+    this.http.post<{ url: string }>(`${environment.apiUrl}/billing/checkout`, {}).subscribe({
+      next: (response) => {
+        if (response.url) {
+          window.location.href = response.url; // Manually route to Stripe
+        }
+      }
     });
   }
 
   onCustomerPortal() {
-    this.http.post<{url: string}>('/api/v1/billing/portal', {}).subscribe(res => {
-      window.location.href = res.url;
+    this.http.post<{ url: string }>(`${environment.apiUrl}/billing/portal`, {}).subscribe({
+      next: (response) => {
+        if (response.url) {
+          window.location.href = response.url; // Manually route to Stripe
+        }
+      }
     });
   }
 }

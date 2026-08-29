@@ -7,14 +7,68 @@ from datetime import datetime, timezone
 
 from app.domain.models.lms import CourseEnrollment, LessonProgress, Course, Lesson, CourseModule, Quiz, QuizQuestion, QuizAnswer, QuizAttempt, QuizResponse
 
+async def get_available_courses(session: AsyncSession, organization_id: uuid.UUID):
+    stmt = select(Course).where(and_(Course.organization_id == organization_id, Course.status == "PUBLISHED", Course.deleted_at.is_(None)))
+    result = await session.execute(stmt)
+    return list(result.scalars().all())
+
+async def get_user_enrollments(session: AsyncSession, organization_id: uuid.UUID, user_id: uuid.UUID):
+    stmt = select(CourseEnrollment).where(and_(CourseEnrollment.organization_id == organization_id, CourseEnrollment.user_id == user_id, CourseEnrollment.deleted_at.is_(None)))
+    result = await session.execute(stmt)
+    return list(result.scalars().all())
+
+async def get_lesson_quiz(session: AsyncSession, organization_id: uuid.UUID, lesson_id: uuid.UUID):
+    from sqlalchemy.orm import selectinload
+    stmt = select(Quiz).options(
+        selectinload(Quiz.questions).selectinload(QuizQuestion.answers)
+    ).where(and_(Quiz.lesson_id == lesson_id, Quiz.organization_id == organization_id))
+    result = await session.execute(stmt)
+    return result.scalars().first()
+
+async def get_enrolled_course_detail(session: AsyncSession, organization_id: uuid.UUID, user_id: uuid.UUID, course_id: uuid.UUID):
+    from sqlalchemy.orm import selectinload
+
+    stmt_enroll = select(CourseEnrollment).where(and_(CourseEnrollment.user_id == user_id, CourseEnrollment.course_id == course_id, CourseEnrollment.organization_id == organization_id))
+    result_enroll = await session.execute(stmt_enroll)
+    if not result_enroll.scalars().first():
+        raise HTTPException(status_code=403, detail="Not enrolled in this course")
+
+    stmt = select(Course).options(
+        selectinload(Course.modules).selectinload(CourseModule.lessons)
+    ).where(
+        and_(
+            Course.id == course_id,
+            Course.organization_id == organization_id,
+            Course.status == "PUBLISHED",
+            Course.deleted_at.is_(None)
+        )
+    )
+    result = await session.execute(stmt)
+    course = result.scalars().first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    return course
+
+async def get_user_lesson_progresses(session: AsyncSession, organization_id: uuid.UUID, user_id: uuid.UUID, course_id: uuid.UUID):
+    stmt_enroll = select(CourseEnrollment).where(and_(CourseEnrollment.user_id == user_id, CourseEnrollment.course_id == course_id, CourseEnrollment.organization_id == organization_id))
+    result_enroll = await session.execute(stmt_enroll)
+    enrollment = result_enroll.scalars().first()
+    if not enrollment:
+        return []
+
+    stmt = select(LessonProgress).where(LessonProgress.enrollment_id == enrollment.id)
+    result = await session.execute(stmt)
+    return list(result.scalars().all())
+
 async def enroll_user(
     session: AsyncSession, organization_id: uuid.UUID, user_id: uuid.UUID, course_id: uuid.UUID
 ) -> CourseEnrollment:
     # Validate course exists in org
-    stmt = select(Course).where(and_(Course.id == course_id, Course.organization_id == organization_id))
+    stmt = select(Course).where(and_(Course.id == course_id, Course.organization_id == organization_id, Course.status == "PUBLISHED"))
     result = await session.execute(stmt)
     if not result.scalars().first():
-        raise HTTPException(status_code=404, detail={"code": "ERR_NOT_FOUND_001", "detail": "Course not found"})
+        raise HTTPException(status_code=404, detail={"code": "ERR_NOT_FOUND_001", "detail": "Course not found or not published"})
 
     enrollment = CourseEnrollment(
         organization_id=organization_id,

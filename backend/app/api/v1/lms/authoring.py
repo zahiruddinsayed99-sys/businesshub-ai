@@ -1,9 +1,9 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.tenant_middleware import get_tenant_context, TenantContext
-from app.domain.lms.schemas import CourseCreate, CourseResponse, CourseModuleCreate, CourseModuleResponse, LessonCreate, LessonResponse
+from app.domain.lms.schemas import CourseCreate, CourseDetailResponse, CourseResponse, CourseModuleCreate, CourseModuleResponse, LessonCreate, LessonResponse, QuizGenerateRequest
 from app.domain.lms import services
 
 router = APIRouter()
@@ -18,6 +18,13 @@ def require_lms_write(context: TenantContext = Depends(get_tenant_context)):
         )
     return context
 
+@router.get("/courses", response_model=list[CourseResponse])
+async def list_courses_endpoint(
+    db: AsyncSession = Depends(get_db),
+    context: TenantContext = Depends(require_lms_write)
+):
+    return await services.list_courses(db, context.organization_id)
+
 @router.post("/courses", response_model=CourseResponse)
 async def create_course(
     course_in: CourseCreate,
@@ -26,13 +33,13 @@ async def create_course(
 ):
     return await services.create_course(db, context.organization_id, course_in)
 
-@router.get("/courses/{id}", response_model=CourseResponse)
+@router.get("/courses/{id}", response_model=CourseDetailResponse)
 async def get_course(
     id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     context: TenantContext = Depends(require_lms_write)
 ):
-    return await services.get_course(db, id, context.organization_id)
+    return await services.get_course_detail(db, id, context.organization_id)
 
 @router.post("/courses/{id}/modules", response_model=CourseModuleResponse)
 async def create_module(
@@ -59,3 +66,26 @@ async def publish_course(
     context: TenantContext = Depends(require_lms_write)
 ):
     return await services.publish_course(db, id, context.organization_id)
+
+@router.post("/lessons/{id}/quiz", status_code=status.HTTP_202_ACCEPTED)
+async def generate_quiz(
+    id: uuid.UUID,
+    request: QuizGenerateRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    context: TenantContext = Depends(require_lms_write)
+):
+    from app.core.billing import check_soft_lock_overage, consume_ai_credits_br_plt_002
+
+    # 1. Verify organization is not in Soft-Lock Overage state
+    await check_soft_lock_overage(db, context.organization_id)
+
+    # 2. Pre-flight Billing Guard (BR-PLT-002) - Deduct 10 AI credits
+    await consume_ai_credits_br_plt_002(db, context.organization_id, 10)
+    await db.commit()
+
+    # 3. Dispatch Background Worker
+    from app.tasks.ai_tasks import generate_ai_quiz
+    background_tasks.add_task(generate_ai_quiz, None, context.organization_id, request.lesson_id)
+
+    return {"status": "accepted"}

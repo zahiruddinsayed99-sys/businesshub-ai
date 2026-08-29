@@ -1,0 +1,97 @@
+<div class="glass-dashboard">
+  <h2>LMS Authoring Dashboard</h2>
+
+  <div class="author-controls" *ngIf="courses().length > 0">
+    <h3>Existing Courses</h3>
+    <ul>
+      <li *ngFor="let course of courses()">
+        {{ course.title }} ({{ course.status }})
+        <button (click)="selectCourse(course.id)">Select to Add Modules</button>
+        <button *ngIf="course.status === 'DRAFT'" (click)="publishCourse(course.id)">Publish</button>
+      </li>
+    </ul>
+  </div>
+
+  <div class="author-controls">
+    <h3>Create New Course</h3>
+    <div class="input-group">
+      <label>Title:</label>
+      <input type="text" [ngModel]="courseTitle()" (ngModelChange)="courseTitle.set($event)" />
+    </div>
+    <div class="input-group">
+      <label>Description:</label>
+      <textarea [ngModel]="courseDescription()" (ngModelChange)="courseDescription.set($event)"></textarea>
+    </div>
+    <button (click)="createCourse()">Save Course</button>
+    <button *ngIf="courseId()" class="publish-btn" (click)="publishCourse()">Publish Course</button>
+  </div>
+
+  <div class="author-controls" *ngIf="selectedCourseDetail()">
+    <h3>Course Hierarchy</h3>
+    <div *ngFor="let mod of selectedCourseDetail().modules">
+      <strong>{{ mod.title }}</strong>
+      <button (click)="selectModule(mod.id)">Select Module to Add Lesson</button>
+      <ul>
+        <li *ngFor="let less of mod.lessons">
+          {{ less.title }}
+          <button (click)="selectLesson(less.id)">Select Lesson for Quiz</button>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="author-controls" *ngIf="courseId()">
+    <h3>Create Module</h3>
+    <div class="input-group">
+      <label>Title:</label>
+      <input type="text" [ngModel]="moduleTitle()" (ngModelChange)="moduleTitle.set($event)" />
+    </div>
+    <div class="input-group">
+      <label>Description:</label>
+      <textarea [ngModel]="moduleDescription()" (ngModelChange)="moduleDescription.set($event)"></textarea>
+    </div>
+    <button (click)="createModule()">Save Module</button>
+  </div>
+
+  <div class="author-controls" *ngIf="moduleId()">
+    <h3>Create Lesson</h3>
+    <div class="input-group">
+      <label>Title:</label>
+      <input type="text" [ngModel]="lessonTitle()" (ngModelChange)="lessonTitle.set($event)" />
+    </div>
+    <div class="input-group">
+      <label>Content (Markdown):</label>
+      <textarea [ngModel]="lessonContentBody()" (ngModelChange)="lessonContentBody.set($event)" rows="10"></textarea>
+    </div>
+    <button (click)="createLesson()">Save Lesson</button>
+  </div>
+
+  <div class="author-controls" *ngIf="lessonId()">
+    <h3>Generate AI Quiz for Lesson</h3>
+    <div class="input-group">
+      <label>Lesson ID:</label>
+      <input type="text" [ngModel]="lessonId()" disabled />
+    </div>
+
+    <button (click)="generateAiQuiz()" [disabled]="isGenerating() || !lessonId()">
+      {{ isGenerating() ? 'Generating...' : 'Generate AI Quiz' }}
+    </button>
+  </div>
+
+  <div class="progress-container" *ngIf="isGenerating() || progress() === 100">
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" [style.width]="progress() + '%'"></div>
+    </div>
+    <p>{{ progress() }}%</p>
+  </div>
+
+  <div class="quiz-preview" *ngIf="quizData()">
+    <h3>{{ quizData().title || 'Generated Quiz' }}</h3>
+    <div *ngFor="let q of quizData().questions; let i = index">
+      <p><strong>Q{{ i + 1 }}:</strong> {{ q.text }}</p>
+      <ul>
+        <li *ngFor="let a of q.answers">{{ a }}</li>
+      </ul>
+    </div>
+  </div>
+</div>

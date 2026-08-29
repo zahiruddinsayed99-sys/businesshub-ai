@@ -19,6 +19,32 @@ async def create_course(
     )
     return await repo.create(course)
 
+async def list_courses(session: AsyncSession, organization_id: uuid.UUID) -> List[Course]:
+    repo = CourseRepository(session)
+    return await repo.list_courses(organization_id)
+
+async def get_course_detail(session: AsyncSession, course_id: uuid.UUID, organization_id: uuid.UUID) -> Course:
+    from sqlalchemy.orm import selectinload
+    from sqlalchemy import select, and_
+
+    stmt = select(Course).options(
+        selectinload(Course.modules).selectinload(CourseModule.lessons)
+    ).where(
+        and_(
+            Course.id == course_id,
+            Course.organization_id == organization_id,
+            Course.deleted_at.is_(None)
+        )
+    )
+    result = await session.execute(stmt)
+    course = result.scalars().first()
+    if not course:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "ERR_NOT_FOUND_001", "detail": "Course not found"}
+        )
+    return course
+
 async def get_course(
     session: AsyncSession, course_id: uuid.UUID, organization_id: uuid.UUID
 ) -> Course:

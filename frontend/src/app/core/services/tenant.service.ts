@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 export interface TenantOnboardRequest {
   org_name: string;
@@ -8,6 +9,7 @@ export interface TenantOnboardRequest {
   admin_email: string;
   admin_password: string;
   admin_full_name: string;
+  invite_code?: string;
 }
 
 export interface TenantOnboardResponse {
@@ -38,9 +40,9 @@ export interface OrganizationResponse {
   providedIn: 'root',
 })
 export class TenantService {
-  private apiUrl = '/api/v1';
+  private apiUrl = environment.apiUrl;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   checkSlugAvailability(slug: string): Observable<SlugCheckResponse> {
     return this.http.get<SlugCheckResponse>(`${this.apiUrl}/tenants/check-slug/${encodeURIComponent(slug)}`);

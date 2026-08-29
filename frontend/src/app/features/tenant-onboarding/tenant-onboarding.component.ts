@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { TenantService, TenantOnboardResponse } from '../../core/services/tenant.service';
+import { Router, ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-tenant-onboarding',
@@ -18,16 +19,24 @@ export class TenantOnboardingComponent implements OnInit {
   errorMessage: string | null = null;
   onboardingSuccess: TenantOnboardResponse | null = null;
 
+  inviteCode: string | null = null;
+
   isCheckingSlug = false;
   isSlugAvailable: boolean | null = null;
   slugSubject = new Subject<string>();
 
   constructor(
     private fb: FormBuilder,
-    private tenantService: TenantService
-  ) {}
+    private tenantService: TenantService,
+    private router: Router,
+    private route: ActivatedRoute
+  ) { }
 
   ngOnInit(): void {
+    this.route.queryParams.subscribe(params => {
+      this.inviteCode = params['code'] || null;
+    });
+
     this.onboardingForm = this.fb.group({
       org_name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(255)]],
       slug: ['', [Validators.pattern('^[a-z0-9]+(?:-[a-z0-9]+)*$')]],
@@ -108,7 +117,7 @@ export class TenantOnboardingComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.onboardingForm.invalid) {
+    if (this.onboardingForm.invalid || !this.inviteCode) {
       this.onboardingForm.markAllAsTouched();
       return;
     }
@@ -123,6 +132,7 @@ export class TenantOnboardingComponent implements OnInit {
       admin_email: formValues.admin_email,
       admin_password: formValues.admin_password,
       admin_full_name: formValues.admin_full_name,
+      invite_code: this.inviteCode
     };
 
     this.tenantService.onboardTenant(payload).subscribe({
@@ -132,12 +142,27 @@ export class TenantOnboardingComponent implements OnInit {
       },
       error: (err) => {
         this.isSubmitting = false;
-        if (err.error && err.error.detail) {
+        if (err.status === 409) {
+          this.errorMessage = 'Workspace or Email already exists';
+        } else if (err.error && err.error.detail) {
           this.errorMessage = typeof err.error.detail === 'string' ? err.error.detail : err.error.detail.detail || 'Onboarding failed';
         } else {
           this.errorMessage = 'An unexpected error occurred during onboarding.';
         }
       },
     });
+  }
+  goToBilling() {
+    if (this.onboardingSuccess && this.onboardingSuccess.access_token) {
+      // 1. Save the token so the app knows the user is logged in
+      localStorage.setItem('access_token', this.onboardingSuccess.access_token);
+      if (this.onboardingSuccess.organization_id) {
+        localStorage.setItem('organization_id', this.onboardingSuccess.organization_id);
+      }
+      // 2. Clear the success state
+      this.onboardingSuccess = null;
+      // 3. Navigate to the billing dashboard
+      this.router.navigate(['/billing']);
+    }
   }
 }

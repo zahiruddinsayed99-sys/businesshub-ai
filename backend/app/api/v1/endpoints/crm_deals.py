@@ -1,9 +1,7 @@
 import uuid
 from typing import List
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
-from celery.result import AsyncResult
-from app.core.celery_app import celery_app
 
 from app.core.billing import check_soft_lock_overage, consume_ai_credits_br_plt_002, BillingError
 from app.core.database import get_db
@@ -29,7 +27,7 @@ def get_crm_deal_repo(db: AsyncSession = Depends(get_db)) -> CrmDealRepository:
 
 @router.get("", response_model=List[CrmDealResponse])
 async def get_deals(
-    context: TenantContext = Depends(RequiresPermission("crm:write")),
+    context: TenantContext = Depends(RequiresPermission("crm:read")),
     repo: CrmDealRepository = Depends(get_crm_deal_repo),
 ):
     return await repo.get_all(context.organization_id)
@@ -38,7 +36,7 @@ async def get_deals(
 @router.get("/{deal_id}", response_model=CrmDealResponse)
 async def get_deal(
     deal_id: uuid.UUID,
-    context: TenantContext = Depends(RequiresPermission("crm:write")),
+    context: TenantContext = Depends(RequiresPermission("crm:read")),
     repo: CrmDealRepository = Depends(get_crm_deal_repo),
 ):
     return await repo.get_by_id(deal_id, context.organization_id)
@@ -108,6 +106,7 @@ async def delete_deal(
 @router.post("/{deal_id}/ai-score", status_code=status.HTTP_202_ACCEPTED)
 async def score_deal_ai(
     deal_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
     context: TenantContext = Depends(RequiresPermission("crm:write")),
     db: AsyncSession = Depends(get_db)
 ):
@@ -124,9 +123,9 @@ async def score_deal_ai(
     # Needs a commit for ai_credits_used increment to take effect immediately
     await db.commit()
 
-    job = calculate_lead_score.delay(str(deal_id))
+    background_tasks.add_task(calculate_lead_score, deal_id)
 
-    return {"job_id": job.id, "deal_id": str(deal_id)}
+    return {"status": "accepted", "deal_id": str(deal_id)}
 
 @router.post("/{deal_id}/draft-followup", status_code=status.HTTP_200_OK)
 async def draft_deal_followup(
