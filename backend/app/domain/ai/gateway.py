@@ -65,8 +65,9 @@ User's Question:
             raise ValueError("GEMINI_API_KEY not configured")
 
         genai.configure(api_key=settings.GEMINI_API_KEY)
+        print("GEMINI_API_KEY= "+settings.GEMINI_API_KEY)  # Debugging line to check the API key
         # using the same model string format given in execute_rag_chat
-        model = genai.GenerativeModel('models/gemini-1.5-flash-latest')
+        model = genai.GenerativeModel('models/gemini-3.5-flash')
 
         prompt = f"""You are an expert instructional designer. Generate a quiz based strictly on the provided lesson content.
 The output MUST be valid JSON and contain a title and a list of questions. Each question MUST have exactly 4 answers, with only one correct answer.
