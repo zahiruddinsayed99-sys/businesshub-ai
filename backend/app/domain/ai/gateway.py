@@ -1,4 +1,5 @@
 import uuid
+import json
 import google.generativeai as genai
 from typing import Optional, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -60,57 +61,45 @@ User's Question:
         return response.text
 
     async def generate_quiz(self, organization_id: uuid.UUID, lesson_content: str) -> dict:
-        # Pre-flight check and deduct 10 credits as per requirements
-        pass
+        if not settings.GEMINI_API_KEY:
+            raise ValueError("GEMINI_API_KEY not configured")
 
-        # Mocking the AI response using the lms_quiz_v1 JSON structure
-        return {
-            "title": "Generated Quiz",
-            "questions": [
-                {
-                    "question_text": "What is the capital of France?",
-                    "answers": [
-                        {"answer_text": "Paris", "is_correct": True},
-                        {"answer_text": "London", "is_correct": False},
-                        {"answer_text": "Berlin", "is_correct": False},
-                        {"answer_text": "Madrid", "is_correct": False}
-                    ]
-                },
-                {
-                    "question_text": "What is 2 + 2?",
-                    "answers": [
-                        {"answer_text": "3", "is_correct": False},
-                        {"answer_text": "4", "is_correct": True},
-                        {"answer_text": "5", "is_correct": False},
-                        {"answer_text": "22", "is_correct": False}
-                    ]
-                },
-                {
-                    "question_text": "Which planet is known as the Red Planet?",
-                    "answers": [
-                        {"answer_text": "Earth", "is_correct": False},
-                        {"answer_text": "Mars", "is_correct": True},
-                        {"answer_text": "Jupiter", "is_correct": False},
-                        {"answer_text": "Saturn", "is_correct": False}
-                    ]
-                },
-                {
-                    "question_text": "Who wrote 'Hamlet'?",
-                    "answers": [
-                        {"answer_text": "Charles Dickens", "is_correct": False},
-                        {"answer_text": "William Shakespeare", "is_correct": True},
-                        {"answer_text": "Mark Twain", "is_correct": False},
-                        {"answer_text": "Jane Austen", "is_correct": False}
-                    ]
-                },
-                {
-                    "question_text": "What is the largest ocean on Earth?",
-                    "answers": [
-                        {"answer_text": "Atlantic Ocean", "is_correct": False},
-                        {"answer_text": "Indian Ocean", "is_correct": False},
-                        {"answer_text": "Arctic Ocean", "is_correct": False},
-                        {"answer_text": "Pacific Ocean", "is_correct": True}
-                    ]
-                }
-            ]
-        }
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        # using the same model string format given in execute_rag_chat
+        model = genai.GenerativeModel('models/gemini-1.5-flash-latest')
+
+        prompt = f"""You are an expert instructional designer. Generate a quiz based strictly on the provided lesson content.
+The output MUST be valid JSON and contain a title and a list of questions. Each question MUST have exactly 4 answers, with only one correct answer.
+
+Lesson Content:
+{lesson_content}
+
+Output Format:
+{{
+  "title": "Quiz Title",
+  "questions": [
+    {{
+      "question_text": "Question 1 text?",
+      "answers": [
+        {{"answer_text": "Answer 1", "is_correct": true}},
+        {{"answer_text": "Answer 2", "is_correct": false}},
+        {{"answer_text": "Answer 3", "is_correct": false}},
+        {{"answer_text": "Answer 4", "is_correct": false}}
+      ]
+    }}
+  ]
+}}
+"""
+        response = await model.generate_content_async(prompt)
+        text = response.text.strip()
+
+        # Strip markdown formatting if any
+        if text.startswith("```json"):
+            text = text[7:].strip()
+        elif text.startswith("```"):
+            text = text[3:].strip()
+
+        if text.endswith("```"):
+            text = text[:-3].strip()
+
+        return json.loads(text)
