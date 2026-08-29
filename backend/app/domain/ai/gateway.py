@@ -1,6 +1,6 @@
 import uuid
 import json
-import google.generativeai as genai
+from google import genai
 from typing import Optional, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
@@ -44,9 +44,7 @@ class AiGatewayService:
         if not settings.GEMINI_API_KEY:
             raise HTTPException(status_code=500, detail="GEMINI_API_KEY not configured")
         
-        genai.configure(api_key=settings.GEMINI_API_KEY)
-        model = genai.GenerativeModel('models/gemini-3.6-flash')
-        # models/gemini-2.5-flash , gemini-flash-latest
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
         prompt = f"""You are a helpful AI assistant. Answer the user's question using ONLY the provided document context.
 
@@ -56,7 +54,10 @@ Context:
 User's Question:
 {user_question}"""
 
-        response = await model.generate_content_async(prompt)
+        response = await client.aio.models.generate_content(
+            model='gemini-3.5-flash',
+            contents=prompt
+        )
 
         return response.text
 
@@ -64,10 +65,8 @@ User's Question:
         if not settings.GEMINI_API_KEY:
             raise ValueError("GEMINI_API_KEY not configured")
 
-        genai.configure(api_key=settings.GEMINI_API_KEY)
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
         print("GEMINI_API_KEY= "+settings.GEMINI_API_KEY)  # Debugging line to check the API key
-        # using the same model string format given in execute_rag_chat
-        model = genai.GenerativeModel('models/gemini-3.5-flash')
 
         prompt = f"""You are an expert instructional designer. Generate a quiz based strictly on the provided lesson content.
 The output MUST be valid JSON and contain a title and a list of questions. Each question MUST have exactly 4 answers, with only one correct answer.
@@ -91,7 +90,10 @@ Output Format:
   ]
 }}
 """
-        response = await model.generate_content_async(prompt)
+        response = await client.aio.models.generate_content(
+            model='gemini-3.5-flash',
+            contents=prompt
+        )
         text = response.text.strip()
 
         # Strip markdown formatting if any
