@@ -17,34 +17,6 @@ from app.domain.models.crm_deal import CrmDeal
 
 pytestmark = pytest.mark.asyncio
 
-@pytest.fixture
-def anyio_backend():
-    return "asyncio"
-
-@pytest_asyncio.fixture
-async def test_engine():
-    engine = create_async_engine(settings.DATABASE_URL, echo=False)
-    yield engine
-    await engine.dispose()
-
-@pytest_asyncio.fixture
-async def db_session(test_engine):
-    connection = await test_engine.connect()
-    transaction = await connection.begin()
-    SessionLocal = async_sessionmaker(bind=connection, class_=AsyncSession, expire_on_commit=False)
-    session = SessionLocal()
-    yield session
-    await session.close()
-    await transaction.rollback()
-    await connection.close()
-
-@pytest_asyncio.fixture
-async def redis():
-    redis = await get_redis_client()
-    yield redis
-    await redis.flushdb()
-    await close_redis_client()
-
 @pytest_asyncio.fixture
 async def async_client():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -54,11 +26,11 @@ async def async_client():
 
 @pytest_asyncio.fixture
 async def setup_tenants(db_session):
-    org_a = Organization(id=uuid.uuid4(), name="Tenant A", slug="tenant-a")
-    org_b = Organization(id=uuid.uuid4(), name="Tenant B", slug="tenant-b")
+    org_a = Organization(id=uuid.uuid4(), name="Tenant A", slug=f"tenant-a-{uuid.uuid4()}")
+    org_b = Organization(id=uuid.uuid4(), name="Tenant B", slug=f"tenant-b-{uuid.uuid4()}")
 
-    user_a = User(id=uuid.uuid4(), email="usera@test.com", full_name="User A", hashed_password="pw")
-    user_b = User(id=uuid.uuid4(), email="userb@test.com", full_name="User B", hashed_password="pw")
+    user_a = User(id=uuid.uuid4(), email=f"usera-{uuid.uuid4()}@test.com", full_name="User A", hashed_password="pw")
+    user_b = User(id=uuid.uuid4(), email=f"userb-{uuid.uuid4()}@test.com", full_name="User B", hashed_password="pw")
 
     db_session.add_all([org_a, org_b, user_a, user_b])
 
@@ -79,9 +51,13 @@ async def setup_tenants(db_session):
 # --- Tenant Isolation ---
 
 @pytest.mark.asyncio
-async def test_tenant_isolation(async_client, setup_tenants, redis):
+async def test_tenant_isolation(async_client, setup_tenants):
     from app.core.security import create_access_token
     from app.core.session import create_session
+    from app.core.redis import get_redis_client
+
+    redis = await get_redis_client()
+
     user_b = setup_tenants["user_b"]
     org_b = setup_tenants["org_b"]
     deal_a = setup_tenants["deal_a"]
@@ -94,10 +70,6 @@ async def test_tenant_isolation(async_client, setup_tenants, redis):
         "X-Organization-Id": str(org_b.id)
     }
 
-    # Try to access Tenant A's deal while authenticated as Tenant B
-    # Since Tenant B is an OWNER, they have all permissions (*), so RBAC passes.
-    # The endpoint should return 404 because the deal is not found within Tenant B's organization context,
-    # or 403 if IDOR protection kicks in at the database level.
     response = await async_client.get(f"/api/v1/crm/deals/{deal_a.id}", headers=headers)
     assert response.status_code in (403, 404)
 
@@ -120,6 +92,9 @@ async def test_credit_exhaustion_blocks_action(db_session, setup_tenants):
     assert exc.value.status_code == 402
     assert exc.value.detail["code"] == "ERR_BILLING_001"
 
+    await db_session.rollback()
+    await db_session.close()
+
 # --- Async/Integrations (Celery Workers) ---
 
 @pytest.mark.asyncio
@@ -127,30 +102,18 @@ async def test_celery_calculate_lead_score_worker(setup_tenants):
     from app.tasks.crm_tasks import calculate_lead_score
     deal_a = setup_tenants["deal_a"]
 
-
-
-
     result = await calculate_lead_score(deal_a.id)
-    # This might fail with ERR_BILLING_001 if credits are exhausted from another test running concurrently
-    # But for an isolated integration point we just assert it ran the flow.
-    # It either completes, runs duplicate (if idempotency lock acquired), or errors (if no credits or rate limits)
     assert result["status"] in ("completed", "duplicate_run", "error")
 
 # --- Stripe Webhook Idempotency ---
 
 @pytest.mark.asyncio
 async def test_stripe_webhook_idempotency(async_client):
-    # Send a forged stripe webhook request to test idempotency logic via the API endpoint
-
     payload = {
         "id": "evt_test_idempotent",
         "type": "customer.subscription.updated",
         "created": 1234567890
     }
-
-    # Since we can't easily sign a fake stripe payload securely here, we expect a 401 Unauthorized
-    # The API reads the body, constructs the event, and verifies the signature.
-    # If the signature verification fails, it throws a 401. This tests the webhook integration point.
 
     response = await async_client.post(
         "/api/v1/billing/webhooks",
