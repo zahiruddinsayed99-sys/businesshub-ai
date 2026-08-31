@@ -64,6 +64,14 @@ async def reset_redis_client():
 from httpx import AsyncClient, ASGITransport
 from app.main import app
 
+# Create a mock for FastAPI BackgroundTasks
+from unittest.mock import AsyncMock, patch
+
+@pytest.fixture(autouse=True)
+def mock_background_tasks():
+    with patch("fastapi.BackgroundTasks.add_task", new_callable=AsyncMock) as mock_add_task:
+        yield mock_add_task
+
 @pytest_asyncio.fixture(scope="function")
 async def async_client():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
