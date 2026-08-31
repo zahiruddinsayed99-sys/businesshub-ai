@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
+import { UpgradeModalComponent } from './components/upgrade-modal/upgrade-modal';
 
 @Component({
   selector: 'app-billing-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, UpgradeModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './billing-dashboard.component.html',
   styleUrls: ['./billing-dashboard.component.scss']
@@ -23,6 +24,7 @@ export class BillingDashboardComponent {
   creditsUsed = signal<number>(50);
   creditsMax = signal<number>(100);
   isSoftLocked = signal<boolean>(false);
+  isUpgradeModalOpen = signal<boolean>(false);
 
   gstinForm = this.fb.group({
     gstin: ['', [Validators.required, Validators.pattern(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/)]],
@@ -70,6 +72,7 @@ export class BillingDashboardComponent {
   }
 
   onCheckout() {
+    // Original Stripe Checkout - kept for backward compatibility or real payment
     this.http.post<{ url: string }>(`${environment.apiUrl}/billing/checkout`, {}).subscribe({
       next: (response) => {
         if (response.url) {
@@ -87,5 +90,22 @@ export class BillingDashboardComponent {
         }
       }
     });
+  }
+
+  openUpgradeModal() {
+    this.isUpgradeModalOpen.set(true);
+  }
+
+  closeUpgradeModal() {
+    this.isUpgradeModalOpen.set(false);
+  }
+
+  onUpgradeSuccess() {
+    this.loadBillingInfo();
+    // In a real app we might want to also trigger a global app state update
+    // or re-evaluate gates, but reloading info and having the new JWT in localStorage
+    // usually suffices for the next requests.
+    this.successToast.set(true);
+    setTimeout(() => this.successToast.set(false), 3000);
   }
 }
