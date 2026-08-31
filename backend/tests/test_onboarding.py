@@ -22,15 +22,18 @@ async def async_db_session():
     """Fixture to provide AsyncSession connected to test database."""
     engine = create_async_engine(settings.DATABASE_URL)
     async_session = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
-    async with async_session() as session:
+    session = async_session()
+    try:
         yield session
-    await engine.dispose()
+    finally:
+        await session.close()
+        await engine.dispose()
 
 
-@pytest.fixture
-def test_client():
-    transport = ASGITransport(app=app)
-    return AsyncClient(transport=transport, base_url="http://test")
+@pytest_asyncio.fixture
+async def test_client():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        yield client
 
 @pytest.mark.asyncio
 async def test_onboarding_success(test_client):
@@ -117,3 +120,6 @@ async def test_onboarding_rollback_on_duplicate(test_client, async_db_session):
     result2 = await async_db_session.execute(stmt2)
     user_in_db = result2.scalars().first()
     assert user_in_db is None
+
+    # We must explicitly rollback or close this session to detach the connection cleanly
+    await async_db_session.rollback()
