@@ -1,3 +1,4 @@
+from sqlalchemy.pool import NullPool
 import pytest
 import pytest_asyncio
 from alembic.config import Config
@@ -21,7 +22,7 @@ async def test_alembic_migrations_upgrade_and_downgrade(alembic_config):
     # 1. Run upgrade to head
     command.upgrade(alembic_config, "head")
 
-    engine = create_async_engine(settings.DATABASE_URL)
+    engine = test_engine
     async with engine.connect() as conn:
         # Verify tables exist
         tables = await conn.run_sync(
