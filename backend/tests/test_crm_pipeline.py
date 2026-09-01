@@ -18,6 +18,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.domain.models.base import Base
 from app.core.redis import get_redis_client, close_redis_client
+from app.domain.models.crm_deal import CrmDeal
 
 pytestmark = pytest.mark.asyncio
 

@@ -51,13 +51,13 @@ async def create_user_and_token(db_session, redis, user_email, org, role):
     return user, access_token
 
 async def test_crm_ai_score_success(async_client: AsyncClient, db_session, mock_redis, monkeypatch):
-    org = Organization(id=uuid.uuid4(), name="Org CRM AI", slug=f"org-crm-ai-{uuid.uuid4()}", ai_credits_used=0, bonus_ai_credits=100)
+    org = Organization(id=uuid.uuid4(), name="Org CRM AI", slug=f"org-crm-ai-{uuid.uuid4()}", ai_credits_used=0, bonus_ai_credits=100, subscription_tier="PRO")
     db_session.add(org)
     await db_session.flush()
 
-    user, token = await create_user_and_token(db_session, mock_redis, f"user-{uuid.uuid4()}@crmai.com", org, "TENANT_OWNER")
+    user, token = await create_user_and_token(db_session, mock_redis, f"user-{uuid.uuid4()}@crmai.com", org, "OWNER")
 
-    deal = CrmDeal(id=uuid.uuid4(), organization_id=org.id, title="Test Deal", value_amount=100)
+    deal = CrmDeal(id=uuid.uuid4(), organization_id=org.id, owner_user_id=user.id, title="Test Deal", value_amount=100)
     db_session.add(deal)
     await db_session.commit()
 
@@ -75,13 +75,13 @@ async def test_crm_ai_score_success(async_client: AsyncClient, db_session, mock_
     assert org.ai_credits_used == 4
 
 async def test_crm_ai_draft_followup_success(async_client: AsyncClient, db_session, mock_redis):
-    org = Organization(id=uuid.uuid4(), name="Org Draft", slug=f"org-draft-{uuid.uuid4()}", ai_credits_used=0, bonus_ai_credits=100)
+    org = Organization(id=uuid.uuid4(), name="Org Draft", slug=f"org-draft-{uuid.uuid4()}", ai_credits_used=0, bonus_ai_credits=100, subscription_tier="PRO")
     db_session.add(org)
     await db_session.flush()
 
-    user, token = await create_user_and_token(db_session, mock_redis, f"draft-{uuid.uuid4()}@crmai.com", org, "TENANT_OWNER")
+    user, token = await create_user_and_token(db_session, mock_redis, f"draft-{uuid.uuid4()}@crmai.com", org, "OWNER")
 
-    deal = CrmDeal(id=uuid.uuid4(), organization_id=org.id, title="Test Deal", value_amount=100)
+    deal = CrmDeal(id=uuid.uuid4(), organization_id=org.id, owner_user_id=user.id, title="Test Deal", value_amount=100)
     db_session.add(deal)
     await db_session.commit()
 
@@ -103,9 +103,9 @@ async def test_crm_ai_billing_blocked(async_client: AsyncClient, db_session, moc
     db_session.add(org)
     await db_session.flush()
 
-    user, token = await create_user_and_token(db_session, mock_redis, f"broke-{uuid.uuid4()}@crmai.com", org, "TENANT_OWNER")
+    user, token = await create_user_and_token(db_session, mock_redis, f"broke-{uuid.uuid4()}@crmai.com", org, "OWNER")
 
-    deal = CrmDeal(id=uuid.uuid4(), organization_id=org.id, title="Test Deal", value_amount=100)
+    deal = CrmDeal(id=uuid.uuid4(), organization_id=org.id, owner_user_id=user.id, title="Test Deal", value_amount=100)
     db_session.add(deal)
     await db_session.commit()
 
@@ -119,16 +119,16 @@ async def test_crm_ai_billing_blocked(async_client: AsyncClient, db_session, moc
 
 async def test_crm_ai_idor(async_client: AsyncClient, db_session, mock_redis):
     # Setup two orgs
-    org1 = Organization(id=uuid.uuid4(), name="Org 1 IDOR", slug=f"org1-idor-{uuid.uuid4()}", ai_credits_used=0, bonus_ai_credits=100)
-    org2 = Organization(id=uuid.uuid4(), name="Org 2 IDOR", slug=f"org2-idor-{uuid.uuid4()}", ai_credits_used=0, bonus_ai_credits=100)
+    org1 = Organization(id=uuid.uuid4(), name="Org 1 IDOR", slug=f"org1-idor-{uuid.uuid4()}", ai_credits_used=0, bonus_ai_credits=100, subscription_tier="PRO")
+    org2 = Organization(id=uuid.uuid4(), name="Org 2 IDOR", slug=f"org2-idor-{uuid.uuid4()}", ai_credits_used=0, bonus_ai_credits=100, subscription_tier="PRO")
     db_session.add_all([org1, org2])
     await db_session.flush()
 
     # Create user for org1
-    user1, token1 = await create_user_and_token(db_session, mock_redis, f"user1-{uuid.uuid4()}@idor.com", org1, "TENANT_OWNER")
+    user1, token1 = await create_user_and_token(db_session, mock_redis, f"user1-{uuid.uuid4()}@idor.com", org1, "OWNER")
 
     # Create deal for org2
-    deal2 = CrmDeal(id=uuid.uuid4(), organization_id=org2.id, title="Org 2 Deal", value_amount=100)
+    deal2 = CrmDeal(id=uuid.uuid4(), organization_id=org2.id, owner_user_id=user1.id, title="Org 2 Deal", value_amount=100)
     db_session.add(deal2)
     await db_session.commit()
 

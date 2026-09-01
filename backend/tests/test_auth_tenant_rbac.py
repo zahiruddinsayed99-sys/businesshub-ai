@@ -12,6 +12,7 @@ from app.main import app
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.redis import get_redis_client, close_redis_client
+from app.domain.models.crm_deal import CrmDeal
 from app.core.security import (
     create_access_token,
     create_refresh_token,

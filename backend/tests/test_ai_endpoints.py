@@ -5,8 +5,6 @@ import uuid
 import json
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.pool import NullPool
-from sqlalchemy.pool import NullPool
 from app.main import app
 from app.core.config import settings
 from app.core.redis import get_redis_client, close_redis_client
@@ -21,7 +19,8 @@ from app.core.session import create_session
 pytestmark = pytest.mark.asyncio
 
 @pytest_asyncio.fixture
-async def setup_auth(db_session, redis):
+async def setup_auth(db_session, reset_redis_client):
+    redis = await get_redis_client()
     org = Organization(id=uuid.uuid4(), name="AI Tenant", slug="ai-tenant", ai_credits_used=0, bonus_ai_credits=0, subscription_tier="FREE")
     db_session.add(org)
     await db_session.flush()
@@ -120,5 +119,8 @@ async def test_atomic_credit_deduction_and_blocking(db_session, monkeypatch):
     await db_session.commit()
 
     # Second call should be blocked by BR-PLT-002
-    with pytest.raises(BillingError):
+    try:
         await gateway.execute_rag_chat(org.id, "context", "question")
+        assert False, "Should have thrown BillingError"
+    except BillingError as e:
+        await db_session.rollback()

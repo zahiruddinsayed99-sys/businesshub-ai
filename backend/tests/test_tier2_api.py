@@ -12,6 +12,7 @@ from datetime import datetime
 from app.main import app
 from app.core.config import settings
 from app.core.redis import get_redis_client, close_redis_client
+from app.domain.models.crm_deal import CrmDeal
 from app.domain.models.organization import Organization
 from app.domain.models.user import User
 from app.domain.models.user_role import UserRole

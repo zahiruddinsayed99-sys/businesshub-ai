@@ -18,15 +18,12 @@ async def cleanup_redis_after_test():
     yield
     await close_redis_client()
 
-
 @pytest_asyncio.fixture
 async def async_db_session(test_engine):
     """Fixture to provide AsyncSession connected to test database."""
     engine = test_engine
     async_session = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     session = async_session()
-    try:
-        yield session
     try:
         yield session
     finally:
