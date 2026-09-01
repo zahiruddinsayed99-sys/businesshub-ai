@@ -4,11 +4,24 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export interface TenantOnboardRequest {
+  name?: string;
   org_name: string;
   slug?: string;
+  email?: string;
   admin_email: string;
+  password?: string;
   admin_password: string;
+  full_name?: string;
   admin_full_name: string;
+  invite_code?: string;
+}
+
+export interface PublicOnboardRequest {
+  name: string;
+  slug?: string;
+  email: string;
+  password: string;
+  full_name: string;
   invite_code?: string;
 }
 
@@ -48,8 +61,9 @@ export class TenantService {
     return this.http.get<SlugCheckResponse>(`${this.apiUrl}/tenants/check-slug/${encodeURIComponent(slug)}`);
   }
 
-  onboardTenant(payload: TenantOnboardRequest): Observable<TenantOnboardResponse> {
-    return this.http.post<TenantOnboardResponse>(`${this.apiUrl}/tenants/onboard`, payload);
+  // Uses auth endpoint for single user creation
+  publicOnboardTenant(payload: PublicOnboardRequest): Observable<TenantOnboardResponse> {
+    return this.http.post<TenantOnboardResponse>(`${this.apiUrl}/auth/onboard`, payload);
   }
 
   getCurrentOrganization(orgId: string, token: string): Observable<OrganizationResponse> {
