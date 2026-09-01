@@ -58,7 +58,7 @@ async def test_forged_webhook_signature(async_client):
 @pytest.mark.asyncio
 async def test_redis_double_spend_protection():
     from app.core.redis import get_redis_client, close_redis_client
-from app.domain.models.crm_deal import CrmDeal
+
     redis = await get_redis_client()
 
     event_id = "evt_idempotent_test"
