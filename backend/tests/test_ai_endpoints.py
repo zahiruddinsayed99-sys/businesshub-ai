@@ -1,10 +1,10 @@
+from sqlalchemy.pool import NullPool
 import pytest
 import pytest_asyncio
 import uuid
 import json
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.pool import NullPool
 from app.main import app
 from app.core.config import settings
 from app.core.redis import get_redis_client, close_redis_client

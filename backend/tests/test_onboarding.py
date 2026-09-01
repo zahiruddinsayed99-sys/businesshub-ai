@@ -30,6 +30,7 @@ async def async_db_session(test_engine):
         await session.close()
         await engine.dispose()
 
+
 @pytest_asyncio.fixture
 async def test_client():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

@@ -58,7 +58,6 @@ async def db_session(test_engine):
 
 from app.core.redis import get_redis_client, close_redis_client
 
-
 @pytest_asyncio.fixture(scope="function", autouse=True)
 async def reset_redis_client():
     yield

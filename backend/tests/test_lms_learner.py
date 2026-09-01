@@ -4,6 +4,7 @@ import pytest_asyncio
 import uuid
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.pool import NullPool
 from app.domain.models.organization import Organization
 from app.domain.models.user import User
 from app.domain.models.user_role import UserRole
@@ -14,7 +15,6 @@ from app.main import app
 from app.core.database import get_db
 from app.core.redis import get_redis_client
 from app.core.config import settings
-
 from unittest.mock import AsyncMock
 
 @pytest_asyncio.fixture

@@ -98,9 +98,6 @@ async def test_credit_exhaustion_blocks_action(db_session, setup_tenants):
     await db_session.rollback()
     await db_session.close()
 
-    await db_session.rollback()
-    await db_session.close()
-
 # --- Async/Integrations (Celery Workers) ---
 
 @pytest.mark.asyncio
