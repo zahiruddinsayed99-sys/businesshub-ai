@@ -1,11 +1,14 @@
+from sqlalchemy.pool import NullPool
 import uuid
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from app.main import app
 from app.core.redis import get_redis_client, close_redis_client
+from app.domain.models.crm_deal import CrmDeal
 from app.core.database import get_db
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.pool import NullPool
 from app.core.config import settings
 from sqlalchemy import select
 from app.domain.models.organization import Organization
@@ -18,19 +21,23 @@ async def cleanup_redis_after_test():
 
 
 @pytest_asyncio.fixture
-async def async_db_session():
+async def async_db_session(test_engine):
     """Fixture to provide AsyncSession connected to test database."""
-    engine = create_async_engine(settings.DATABASE_URL)
+    engine = test_engine
     async_session = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     async with async_session() as session:
         yield session
-    await engine.dispose()
+    try:
+        yield session
+    finally:
+        await session.close()
+        await engine.dispose()
 
 
-@pytest.fixture
-def test_client():
-    transport = ASGITransport(app=app)
-    return AsyncClient(transport=transport, base_url="http://test")
+@pytest_asyncio.fixture
+async def test_client():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        yield client
 
 @pytest.mark.asyncio
 async def test_onboarding_success(test_client):
@@ -117,3 +124,6 @@ async def test_onboarding_rollback_on_duplicate(test_client, async_db_session):
     result2 = await async_db_session.execute(stmt2)
     user_in_db = result2.scalars().first()
     assert user_in_db is None
+
+    # We must explicitly rollback or close this session to detach the connection cleanly
+    await async_db_session.rollback()

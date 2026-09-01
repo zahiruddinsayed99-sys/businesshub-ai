@@ -1,15 +1,18 @@
+from sqlalchemy.pool import NullPool
 import uuid
 from datetime import timedelta
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.pool import NullPool
 from sqlalchemy import select
 
 from app.main import app
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.redis import get_redis_client, close_redis_client
+from app.domain.models.crm_deal import CrmDeal
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -34,9 +37,9 @@ async def cleanup_redis_after_test():
 
 
 @pytest_asyncio.fixture
-async def async_db_session():
+async def async_db_session(test_engine):
     """Fixture to provide AsyncSession connected to test database."""
-    engine = create_async_engine(settings.DATABASE_URL)
+    engine = test_engine
     async_session = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     async with async_session() as session:
         yield session
