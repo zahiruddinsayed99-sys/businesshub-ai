@@ -1,7 +1,9 @@
+from sqlalchemy.pool import NullPool
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.pool import NullPool
 from sqlalchemy import select, delete
 import uuid
 import asyncio

@@ -1,3 +1,4 @@
+from sqlalchemy.pool import NullPool
 import pytest
 import pytest_asyncio
 import os
@@ -27,7 +28,8 @@ def anyio_backend():
 @pytest_asyncio.fixture(scope="session")
 async def test_engine():
     db_url = os.environ.get("DATABASE_URL", str(settings.DATABASE_URL))
-    engine = create_async_engine(db_url, echo=False, poolclass=NullPool)
+    engine = create_async_engine(db_url, echo=False, poolclass=NullPool
+)
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)

@@ -3,10 +3,11 @@ import pytest_asyncio
 import uuid
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.pool import NullPool
 from app.domain.models.organization import Organization
 from app.domain.models.user import User
 from app.domain.models.user_role import UserRole
-from app.domain.models import Course, CourseModule, Lesson, Quiz, QuizQuestion, QuizAnswer, CourseEnrollment
+from app.domain.models import Course, Lesson, Quiz, QuizQuestion, CourseEnrollment, LessonProgress, QuizAttempt
 from app.core.security import create_access_token, hash_password
 from app.core.session import create_session
 from app.main import app
@@ -14,15 +15,16 @@ from app.core.database import get_db
 from app.core.redis import get_redis_client
 from app.core.config import settings
 
-
-
 @pytest_asyncio.fixture
 async def async_db_session():
-    """Fixture to provide AsyncSession connected to test database."""
-    engine = create_async_engine(settings.DATABASE_URL)
+    engine = create_async_engine(settings.DATABASE_URL, poolclass=NullPool)
     async_session = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
-    async with async_session() as session:
+    session = async_session()
+    try:
         yield session
+    finally:
+        await session.close()
+        await engine.dispose()
 
 from unittest.mock import AsyncMock
 
@@ -41,7 +43,7 @@ async def async_client(async_db_session, mock_redis):
     app.dependency_overrides.clear()
 
 async def create_user_and_token(db_session, redis, user_email, org, role):
-    user = User(email=user_email, full_name="Test User", hashed_password=hash_password("password"))
+    user = User(id=uuid.uuid4(), email=user_email, full_name="Learner", hashed_password=hash_password("pw"))
     db_session.add(user)
     await db_session.flush()
 
@@ -50,133 +52,106 @@ async def create_user_and_token(db_session, redis, user_email, org, role):
     await db_session.flush()
 
     token_id = str(uuid.uuid4())
-    token, _ = create_access_token(
-        user_id=str(user.id),
-        email=user.email,
-        roles=[role],
-        token_id=token_id
-    )
+    token, _ = create_access_token(user_id=str(user.id), email=user.email, roles=[role], token_id=token_id)
     await create_session(redis, str(user.id), token_id)
     return user, token
 
 @pytest.mark.asyncio
-async def test_quiz_scoring_business_logic(async_client: AsyncClient, async_db_session, mock_redis):
-    # Create org
+async def test_get_courses_rbac(async_client: AsyncClient, async_db_session, mock_redis):
     org_id = uuid.uuid4()
     org = Organization(id=org_id, name="Test Org", slug=f"test-org-{org_id}")
     async_db_session.add(org)
     await async_db_session.flush()
 
-    # Create user and enroll
-    user, token = await create_user_and_token(async_db_session, mock_redis, f"learner_{org_id}@lms.com", org, "DOMAIN_MEMBER")
-
-    # Set up course, module, lesson, quiz
-    course = Course(organization_id=org_id, title="Test Course")
-    async_db_session.add(course)
-    await async_db_session.flush()
-
-    module = CourseModule(organization_id=org_id, course_id=course.id, title="Test Module")
-    async_db_session.add(module)
-    await async_db_session.flush()
-
-    lesson = Lesson(organization_id=org_id, module_id=module.id, title="Test Lesson")
-    async_db_session.add(lesson)
-    await async_db_session.flush()
-
-    quiz = Quiz(organization_id=org_id, lesson_id=lesson.id, title="Test Quiz")
-    async_db_session.add(quiz)
-    await async_db_session.flush()
-
-    # Add a question and answers
-    question = QuizQuestion(quiz_id=quiz.id, question_text="What is 2+2?")
-    async_db_session.add(question)
-    await async_db_session.flush()
-
-    ans_correct = QuizAnswer(question_id=question.id, answer_text="4", is_correct=True)
-    ans_wrong = QuizAnswer(question_id=question.id, answer_text="3", is_correct=False)
-    async_db_session.add_all([ans_correct, ans_wrong])
+    # User with correct domain member role
+    user, token = await create_user_and_token(async_db_session, mock_redis, f"member_{org_id}@lms.com", org, "DOMAIN_MEMBER")
     await async_db_session.commit()
 
-    # Submit correct answer (100% score) -> Should Pass
-    response = await async_client.post(
-        f"/api/v1/lms/quizzes/attempts?quiz_id={quiz.id}",
-        headers={"Authorization": f"Bearer {token}", "X-Organization-Id": str(org_id)},
-        json={"responses": {str(question.id): str(ans_correct.id)}}
+    response = await async_client.get(
+        "/api/v1/lms/catalog/courses",
+        headers={"Authorization": f"Bearer {token}", "X-Organization-Id": str(org_id)}
     )
 
     assert response.status_code == 200
-    data = response.json()
-    assert data["score"] == 100.0
-    assert data["passed"] == True
-
-    # Submit wrong answer (0% score) -> Should Fail
-    response_fail = await async_client.post(
-        f"/api/v1/lms/quizzes/attempts?quiz_id={quiz.id}",
-        headers={"Authorization": f"Bearer {token}", "X-Organization-Id": str(org_id)},
-        json={"responses": {str(question.id): str(ans_wrong.id)}}
-    )
-
-    assert response_fail.status_code == 200
-    data_fail = response_fail.json()
-    assert data_fail["score"] == 0.0
-    assert data_fail["passed"] == False
+    assert isinstance(response.json(), list)
 
 @pytest.mark.asyncio
 async def test_lesson_progress_completion(async_client: AsyncClient, async_db_session, mock_redis):
     org_id = uuid.uuid4()
-    org = Organization(id=org_id, name="Test Org 3", slug=f"test-org-3-{org_id}")
+    org = Organization(id=org_id, name="Test Org", slug=f"test-org-{org_id}")
     async_db_session.add(org)
     await async_db_session.flush()
 
-    user, token = await create_user_and_token(async_db_session, mock_redis, f"learner2_{org_id}@lms.com", org, "DOMAIN_MEMBER")
+    user, token = await create_user_and_token(async_db_session, mock_redis, f"learner_{org_id}@lms.com", org, "DOMAIN_MEMBER")
 
-    # Set up course with 1 lesson
-    course = Course(organization_id=org_id, title="Quick Course", status="PUBLISHED")
-    async_db_session.add(course)
-    await async_db_session.flush()
+    course = Course(id=uuid.uuid4(), organization_id=org_id, title="Prog Course", status="PUBLISHED", description="test")
+    lesson = Lesson(id=uuid.uuid4(), course_id=course.id, title="Prog Lesson", content="abc", order_index=0)
+    enrollment = CourseEnrollment(id=uuid.uuid4(), user_id=user.id, course_id=course.id)
 
-    module = CourseModule(organization_id=org_id, course_id=course.id, title="Module 1")
-    async_db_session.add(module)
-    await async_db_session.flush()
-
-    lesson = Lesson(organization_id=org_id, module_id=module.id, title="Lesson 1")
-    async_db_session.add(lesson)
+    async_db_session.add_all([course, lesson, enrollment])
     await async_db_session.commit()
 
-    # Enroll
-    enroll_response = await async_client.post(
-        f"/api/v1/lms/catalog/{course.id}/enroll",
+    response = await async_client.post(
+        f"/api/v1/lms/catalog/courses/{course.id}/lessons/{lesson.id}/complete",
         headers={"Authorization": f"Bearer {token}", "X-Organization-Id": str(org_id)}
     )
-    assert enroll_response.status_code == 200
 
-    # Log progress for the single lesson (which should trigger course completion)
-    progress_response = await async_client.post(
-        f"/api/v1/lms/lessons/{lesson.id}/progress",
-        headers={"Authorization": f"Bearer {token}", "X-Organization-Id": str(org_id)},
-        json={"is_completed": True}
-    )
-    assert progress_response.status_code == 200
-
-    # Check enrollment status
-    from sqlalchemy import select
-    stmt = select(CourseEnrollment).where(CourseEnrollment.course_id == course.id)
-    enrollment = (await async_db_session.execute(stmt)).scalars().first()
-
-    assert enrollment.status == "COMPLETED"
-    assert enrollment.completed_at is not None
+    assert response.status_code == 200
+    assert response.json()["status"] == "COMPLETED"
 
 @pytest.mark.asyncio
-async def test_get_courses_rbac(async_client: AsyncClient, async_db_session, mock_redis):
+async def test_quiz_scoring_business_logic(async_client: AsyncClient, async_db_session, mock_redis):
     org_id = uuid.uuid4()
-    org = Organization(id=org_id, name="Test Org 4", slug=f"test-org-4-{org_id}")
+    org = Organization(id=org_id, name="Test Org", slug=f"test-org-{org_id}")
     async_db_session.add(org)
     await async_db_session.flush()
 
-    user, token = await create_user_and_token(async_db_session, mock_redis, f"learner_courses_{org_id}@lms.com", org, "DOMAIN_MEMBER")
+    user, token = await create_user_and_token(async_db_session, mock_redis, f"quiz_{org_id}@lms.com", org, "DOMAIN_MEMBER")
 
-    response = await async_client.get(
-        "/api/v1/lms/catalog",
+    course = Course(id=uuid.uuid4(), organization_id=org_id, title="Quiz Course", status="PUBLISHED", description="test")
+    lesson = Lesson(id=uuid.uuid4(), course_id=course.id, title="Quiz Lesson", content="abc", order_index=0)
+    quiz = Quiz(id=uuid.uuid4(), lesson_id=lesson.id, title="Test Quiz", passing_score_percentage=80.0)
+
+    q1 = QuizQuestion(id=uuid.uuid4(), quiz_id=quiz.id, question_text="Q1", options=[{"id":"A", "text":"A"}, {"id":"B", "text":"B"}], correct_option_id="A")
+    q2 = QuizQuestion(id=uuid.uuid4(), quiz_id=quiz.id, question_text="Q2", options=[{"id":"C", "text":"C"}, {"id":"D", "text":"D"}], correct_option_id="C")
+
+    enrollment = CourseEnrollment(id=uuid.uuid4(), user_id=user.id, course_id=course.id)
+
+    async_db_session.add_all([course, lesson, quiz, q1, q2, enrollment])
+    await async_db_session.commit()
+
+    # Test 50% score (Fails BR-LMS-001)
+    payload_fail = {
+        "answers": [
+            {"question_id": str(q1.id), "selected_option_id": "A"}, # correct
+            {"question_id": str(q2.id), "selected_option_id": "D"}  # incorrect
+        ]
+    }
+
+    res_fail = await async_client.post(
+        f"/api/v1/lms/catalog/courses/{course.id}/lessons/{lesson.id}/quizzes/{quiz.id}/submit",
         headers={"Authorization": f"Bearer {token}", "X-Organization-Id": str(org_id)},
+        json=payload_fail
     )
-    assert response.status_code == 200
+
+    assert res_fail.status_code == 200
+    assert res_fail.json()["score_percentage"] == 50.0
+    assert res_fail.json()["passed"] is False
+
+    # Test 100% score (Passes BR-LMS-001)
+    payload_pass = {
+        "answers": [
+            {"question_id": str(q1.id), "selected_option_id": "A"}, # correct
+            {"question_id": str(q2.id), "selected_option_id": "C"}  # correct
+        ]
+    }
+
+    res_pass = await async_client.post(
+        f"/api/v1/lms/catalog/courses/{course.id}/lessons/{lesson.id}/quizzes/{quiz.id}/submit",
+        headers={"Authorization": f"Bearer {token}", "X-Organization-Id": str(org_id)},
+        json=payload_pass
+    )
+
+    assert res_pass.status_code == 200
+    assert res_pass.json()["score_percentage"] == 100.0
+    assert res_pass.json()["passed"] is True
