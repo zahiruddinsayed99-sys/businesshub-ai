@@ -1,3 +1,4 @@
+from sqlalchemy.pool import NullPool
 import pytest
 from app.core.security import decode_token, create_access_token
 import uuid

@@ -58,11 +58,7 @@
       border-radius: 4px;
     }
 
-    .error-text {
-      color: red;
-      font-size: 0.8em;
-      margin-top: 5px;
-    }
+
   }
 
   .actions {
@@ -85,5 +81,15 @@
         background-color: #0056b3;
       }
     }
+  }
+}
+.btn-upgrade-mock {
+  background-color: #28a745;
+  color: white;
+  margin-left: 10px;
+  margin-right: 10px;
+
+  &:hover {
+    background-color: #218838;
   }
 }

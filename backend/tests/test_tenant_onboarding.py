@@ -1,3 +1,4 @@
+from sqlalchemy.pool import NullPool
 import uuid
 import pytest
 import pytest_asyncio
@@ -20,9 +21,9 @@ async def cleanup_redis_after_test():
 
 
 @pytest_asyncio.fixture
-async def async_db_session():
+async def async_db_session(test_engine):
     """Fixture to provide AsyncSession connected to test database."""
-    engine = create_async_engine(settings.DATABASE_URL)
+    engine = test_engine
     async_session = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     async with async_session() as session:
         yield session
