@@ -2,7 +2,7 @@
   <div class="header">
     <h2>CRM Deal Pipeline</h2>
     <div class="header-actions">
-      <button class="primary-btn new-deal-btn" (click)="openCreateModal()">+ New Deal</button>
+      <button class="btn btn-primary new-deal-btn" (click)="openCreateModal()">+ New Deal</button>
     </div>
     <div class="filters">
       <button [class.active]="filterMode() === 'ALL'" (click)="setFilter('ALL')">All Team Deals</button>
@@ -10,7 +10,7 @@
     </div>
   </div>
 
-  <div class="toast-error" *ngIf="errorToast()">
+  <div class="error-banner" *ngIf="errorToast()">
     {{ errorToast() }}
   </div>
 
@@ -65,7 +65,7 @@
         <button class="close-btn" (click)="closeDraftModal()">×</button>
       </div>
       <div class="modal-body">
-        <div *ngIf="draftLoading()" class="loading-spinner">Drafting your email...</div>
+        <div *ngIf="draftLoading()" class="spinner-text"><span class="spinner"></span> Drafting your email...</div>
         <textarea *ngIf="!draftLoading()" readonly [value]="draftContent()" class="draft-textarea"></textarea>
       </div>
       <div class="modal-footer" *ngIf="!draftLoading()">
@@ -97,7 +97,7 @@
         </select>
       </div>
       <div class="modal-footer">
-        <button class="primary-btn" (click)="submitCreateDeal()">Create Deal</button>
+        <button class="btn btn-primary" (click)="submitCreateDeal()">Create Deal</button>
       </div>
     </div>
   </div>
@@ -143,7 +143,7 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button class="primary-btn" (click)="submitEditDeal()">Save Changes</button>
+        <button class="btn btn-primary" (click)="submitEditDeal()">Save Changes</button>
       </div>
     </div>
   </div>
