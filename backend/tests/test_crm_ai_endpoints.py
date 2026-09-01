@@ -45,9 +45,8 @@ async def create_user_and_token(db_session, redis, user_email, org, role):
     await db_session.flush()
 
     token_id = str(uuid.uuid4())
-    access_token, _ = create_access_token(user_id=user.id, email=user.email, roles=[role], token_id=token_id)
+    access_token, _ = create_access_token(user_id=str(user.id), email=user.email, roles=[role], token_id=token_id)
     await create_session(redis=redis, user_id=user.id, token_id=token_id, ttl_seconds=3600)
-
     return user, access_token
 
 async def test_crm_ai_score_success(async_client: AsyncClient, db_session, mock_redis, monkeypatch):
@@ -55,7 +54,7 @@ async def test_crm_ai_score_success(async_client: AsyncClient, db_session, mock_
     db_session.add(org)
     await db_session.flush()
 
-    user, token = await create_user_and_token(db_session, mock_redis, f"user-{uuid.uuid4()}@crmai.com", org, "OWNER")
+    user, token = await create_user_and_token(db_session, mock_redis, f"user-{uuid.uuid4()}@crmai.com", org, "TENANT_OWNER")
 
     deal = CrmDeal(id=uuid.uuid4(), organization_id=org.id, owner_user_id=user.id, title="Test Deal", value_amount=100)
     db_session.add(deal)
@@ -79,7 +78,7 @@ async def test_crm_ai_draft_followup_success(async_client: AsyncClient, db_sessi
     db_session.add(org)
     await db_session.flush()
 
-    user, token = await create_user_and_token(db_session, mock_redis, f"draft-{uuid.uuid4()}@crmai.com", org, "OWNER")
+    user, token = await create_user_and_token(db_session, mock_redis, f"draft-{uuid.uuid4()}@crmai.com", org, "TENANT_OWNER")
 
     deal = CrmDeal(id=uuid.uuid4(), organization_id=org.id, owner_user_id=user.id, title="Test Deal", value_amount=100)
     db_session.add(deal)
@@ -103,7 +102,7 @@ async def test_crm_ai_billing_blocked(async_client: AsyncClient, db_session, moc
     db_session.add(org)
     await db_session.flush()
 
-    user, token = await create_user_and_token(db_session, mock_redis, f"broke-{uuid.uuid4()}@crmai.com", org, "OWNER")
+    user, token = await create_user_and_token(db_session, mock_redis, f"broke-{uuid.uuid4()}@crmai.com", org, "TENANT_OWNER")
 
     deal = CrmDeal(id=uuid.uuid4(), organization_id=org.id, owner_user_id=user.id, title="Test Deal", value_amount=100)
     db_session.add(deal)
@@ -125,7 +124,7 @@ async def test_crm_ai_idor(async_client: AsyncClient, db_session, mock_redis):
     await db_session.flush()
 
     # Create user for org1
-    user1, token1 = await create_user_and_token(db_session, mock_redis, f"user1-{uuid.uuid4()}@idor.com", org1, "OWNER")
+    user1, token1 = await create_user_and_token(db_session, mock_redis, f"user1-{uuid.uuid4()}@idor.com", org1, "TENANT_OWNER")
 
     # Create deal for org2
     deal2 = CrmDeal(id=uuid.uuid4(), organization_id=org2.id, owner_user_id=user1.id, title="Org 2 Deal", value_amount=100)
