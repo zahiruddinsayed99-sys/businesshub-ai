@@ -3,6 +3,7 @@ import pytest_asyncio
 import uuid
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.pool import NullPool
 from app.domain.models.organization import Organization
 from app.domain.models.user import User
 from app.domain.models.user_role import UserRole
@@ -13,15 +14,17 @@ from app.core.database import get_db
 from app.core.redis import get_redis_client
 from app.core.config import settings
 
-
-
 @pytest_asyncio.fixture
 async def async_db_session():
     """Fixture to provide AsyncSession connected to test database."""
-    engine = create_async_engine(settings.DATABASE_URL)
+    engine = create_async_engine(settings.DATABASE_URL, poolclass=NullPool)
     async_session = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
-    async with async_session() as session:
+    session = async_session()
+    try:
         yield session
+    finally:
+        await session.close()
+        await engine.dispose()
 
 from unittest.mock import AsyncMock
 
@@ -40,7 +43,7 @@ async def async_client(async_db_session, mock_redis):
     app.dependency_overrides.clear()
 
 async def create_user_and_token(db_session, redis, user_email, org, role):
-    user = User(email=user_email, full_name="Test User", hashed_password=hash_password("password"))
+    user = User(id=uuid.uuid4(), email=user_email, full_name="Test User", hashed_password=hash_password("password"))
     db_session.add(user)
     await db_session.flush()
 
@@ -79,6 +82,7 @@ async def test_create_course_success(async_client: AsyncClient, async_db_session
     data = response.json()
     assert data["title"] == "Test Course"
     assert data["status"] == "DRAFT"
+    await async_db_session.refresh(org) # Fix flush before teardown
 
 @pytest.mark.asyncio
 async def test_create_course_rbac_failure(async_client: AsyncClient, async_db_session, mock_redis):
@@ -97,6 +101,8 @@ async def test_create_course_rbac_failure(async_client: AsyncClient, async_db_se
     )
 
     assert response.status_code == 403
+    await async_db_session.refresh(org) # Fix flush before teardown
+
 
 @pytest.mark.asyncio
 async def test_get_course_cross_tenant_lookup(async_client: AsyncClient, async_db_session, mock_redis):
@@ -126,3 +132,4 @@ async def test_get_course_cross_tenant_lookup(async_client: AsyncClient, async_d
     )
 
     assert response.status_code == 404
+    await async_db_session.refresh(org1) # Fix flush before teardown

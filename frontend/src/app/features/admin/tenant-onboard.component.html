@@ -6,57 +6,37 @@
     {{ successMessage() }}
   </div>
 
-  <div *ngIf="errorMessage()" class="alert alert-danger">
+  <div *ngIf="errorMessage()" class="error-banner">
     {{ errorMessage() }}
   </div>
 
   <div class="admin-controls">
-    <div class="input-group">
-      <label>Company/Org Name (name):</label>
-      <input type="text" [ngModel]="companyName()" (ngModelChange)="companyName.set($event)" placeholder="e.g. Acme Corp" />
+    <div class="form-group">
+      <label>Organization Name:</label>
+      <input type="text" [ngModel]="orgName()" (ngModelChange)="onOrgNameChange($event)" placeholder="e.g. Acme Corp" />
     </div>
 
-    <div class="input-group">
-      <label>Org Name (org_name):</label>
-      <input type="text" [ngModel]="orgName()" (ngModelChange)="orgName.set($event)" placeholder="e.g. Acme Corp" />
+    <div class="form-group">
+      <label>Workspace Slug:</label>
+      <input type="text" [ngModel]="companySlug()" (ngModelChange)="onSlugChange($event)" placeholder="e.g. acme-corp" />
     </div>
 
-    <div class="input-group">
-      <label>Workspace Slug (slug):</label>
-      <input type="text" [ngModel]="companySlug()" (ngModelChange)="companySlug.set($event)" placeholder="e.g. acme-corp" />
-    </div>
-
-    <div class="input-group">
-      <label>Email (email):</label>
-      <input type="email" [ngModel]="email()" (ngModelChange)="email.set($event)" placeholder="e.g. admin@acme.com" />
-    </div>
-
-    <div class="input-group">
-      <label>Admin Email (admin_email):</label>
+    <div class="form-group">
+      <label>Admin Email:</label>
       <input type="email" [ngModel]="adminEmail()" (ngModelChange)="adminEmail.set($event)" placeholder="e.g. admin@acme.com" />
     </div>
 
-    <div class="input-group">
-      <label>Password (password):</label>
-      <input type="password" [ngModel]="password()" (ngModelChange)="password.set($event)" placeholder="Password123!" />
-    </div>
-
-    <div class="input-group">
-      <label>Admin Password (admin_password):</label>
+    <div class="form-group">
+      <label>Admin Password:</label>
       <input type="password" [ngModel]="adminPassword()" (ngModelChange)="adminPassword.set($event)" placeholder="Password123!" />
     </div>
 
-    <div class="input-group">
-      <label>Full Name (full_name):</label>
-      <input type="text" [ngModel]="fullName()" (ngModelChange)="fullName.set($event)" placeholder="e.g. John Doe" />
-    </div>
-
-    <div class="input-group">
-      <label>Admin Full Name (admin_full_name):</label>
+    <div class="form-group">
+      <label>Admin Full Name:</label>
       <input type="text" [ngModel]="adminFullName()" (ngModelChange)="adminFullName.set($event)" placeholder="e.g. John Doe" />
     </div>
 
-    <button (click)="createTenant()" [disabled]="isSubmitting() || !companyName() || !companySlug()">
+    <button class="btn btn-primary" style="margin-top: 1rem;" class="btn btn-primary btn-full" (click)="createTenant()" [disabled]="isSubmitting() || !orgName() || !companySlug()">
       {{ isSubmitting() ? 'Creating...' : 'Create Workspace' }}
     </button>
   </div>
