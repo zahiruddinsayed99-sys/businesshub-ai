@@ -12,7 +12,7 @@
       <div class="form-group">
         <label for="name">Company Name</label>
         <input id="name" type="text" formControlName="name" class="form-control" />
-        <div *ngIf="companyForm.controls.name.touched && companyForm.controls.name.errors?.['required']" class="error-text">
+        <div *ngIf="companyForm.controls.name.touched && companyForm.controls.name.errors?.['required']" class="field-error">
           Company name is required.
         </div>
       </div>
@@ -20,10 +20,10 @@
       <div class="form-group">
         <label for="gstin">GSTIN (15-character ID)</label>
         <input id="gstin" type="text" formControlName="gstin" class="form-control" />
-        <div *ngIf="companyForm.controls.gstin.touched && companyForm.controls.gstin.errors?.['required']" class="error-text">
+        <div *ngIf="companyForm.controls.gstin.touched && companyForm.controls.gstin.errors?.['required']" class="field-error">
           GSTIN is required.
         </div>
-        <div *ngIf="companyForm.controls.gstin.touched && companyForm.controls.gstin.errors?.['pattern']" class="error-text">
+        <div *ngIf="companyForm.controls.gstin.touched && companyForm.controls.gstin.errors?.['pattern']" class="field-error">
           Invalid GSTIN format. It must be exactly 15 characters matching the standard Indian format.
         </div>
       </div>
@@ -31,7 +31,7 @@
       <div class="form-group">
         <label for="billing_state">Billing State</label>
         <input id="billing_state" type="text" formControlName="billing_state" class="form-control" />
-        <div *ngIf="companyForm.controls.billing_state.touched && companyForm.controls.billing_state.errors?.['required']" class="error-text">
+        <div *ngIf="companyForm.controls.billing_state.touched && companyForm.controls.billing_state.errors?.['required']" class="field-error">
           Billing state is required.
         </div>
       </div>
