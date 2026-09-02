@@ -21,11 +21,11 @@ export class TenantOnboardComponent {
   email = signal<string>('');
   password = signal<string>('');
   fullName = signal<string>('');
-
   adminEmail = signal<string>('');
   adminPassword = signal<string>('');
   adminFullName = signal<string>('');
   slugEdited = signal<boolean>(false);
+
   isSubmitting = signal<boolean>(false);
   successMessage = signal<string | null>(null);
   errorMessage = signal<string | null>(null);
