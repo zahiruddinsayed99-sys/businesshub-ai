@@ -17,9 +17,16 @@ export class TenantOnboardComponent {
 
   orgName = signal<string>('');
   companySlug = signal<string>('');
+
+  email = signal<string>('');
+  password = signal<string>('');
+  fullName = signal<string>('');
+
   adminEmail = signal<string>('');
   adminPassword = signal<string>('');
   adminFullName = signal<string>('');
+  slugEdited = signal<boolean>(false);
+
   slugEdited = signal<boolean>(false);
 
   isSubmitting = signal<boolean>(false);
@@ -72,6 +79,9 @@ export class TenantOnboardComponent {
         this.successMessage.set(`Workspace for ${this.orgName()} created successfully!`);
         this.orgName.set('');
         this.companySlug.set('');
+        this.email.set('');
+        this.password.set('');
+        this.fullName.set('');
         this.adminEmail.set('');
         this.adminPassword.set('');
         this.adminFullName.set('');
