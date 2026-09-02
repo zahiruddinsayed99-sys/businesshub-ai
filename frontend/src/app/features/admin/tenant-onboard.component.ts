@@ -26,9 +26,6 @@ export class TenantOnboardComponent {
   adminPassword = signal<string>('');
   adminFullName = signal<string>('');
   slugEdited = signal<boolean>(false);
-
-  slugEdited = signal<boolean>(false);
-
   isSubmitting = signal<boolean>(false);
   successMessage = signal<string | null>(null);
   errorMessage = signal<string | null>(null);
@@ -68,11 +65,11 @@ export class TenantOnboardComponent {
       name: this.orgName(),
       org_name: this.orgName(),
       slug: this.companySlug(),
-      email: this.adminEmail(),
+      email: this.email(),
       admin_email: this.adminEmail(),
-      password: this.adminPassword(),
+      password: this.password(),
       admin_password: this.adminPassword(),
-      full_name: this.adminFullName(),
+      full_name: this.fullName(),
       admin_full_name: this.adminFullName()
     }).subscribe({
       next: (res) => {
