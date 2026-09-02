@@ -1,3 +1,4 @@
+from sqlalchemy.pool import NullPool
 import pytest
 from sqlalchemy import select
 import uuid
