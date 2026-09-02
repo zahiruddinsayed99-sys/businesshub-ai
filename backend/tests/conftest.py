@@ -1,3 +1,4 @@
+from sqlalchemy.pool import NullPool
 import pytest
 import pytest_asyncio
 import os
@@ -27,7 +28,8 @@ def anyio_backend():
 @pytest_asyncio.fixture(scope="session")
 async def test_engine():
     db_url = os.environ.get("DATABASE_URL", str(settings.DATABASE_URL))
-    engine = create_async_engine(db_url, echo=False, poolclass=NullPool)
+    engine = create_async_engine(db_url, echo=False, poolclass=NullPool
+)
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
@@ -63,6 +65,14 @@ async def reset_redis_client():
 
 from httpx import AsyncClient, ASGITransport
 from app.main import app
+
+# Create a mock for FastAPI BackgroundTasks
+from unittest.mock import AsyncMock, patch
+
+@pytest.fixture(autouse=True)
+def mock_background_tasks():
+    with patch("fastapi.BackgroundTasks.add_task", new_callable=AsyncMock) as mock_add_task:
+        yield mock_add_task
 
 @pytest_asyncio.fixture(scope="function")
 async def async_client():

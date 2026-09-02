@@ -1,3 +1,4 @@
+from sqlalchemy.pool import NullPool
 import uuid
 import pytest
 import pytest_asyncio
@@ -6,6 +7,7 @@ from app.main import app
 from app.core.redis import get_redis_client, close_redis_client
 from app.core.database import get_db
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.pool import NullPool
 from app.core.config import settings
 from sqlalchemy import select
 from app.domain.models.organization import Organization
@@ -16,11 +18,10 @@ async def cleanup_redis_after_test():
     yield
     await close_redis_client()
 
-
 @pytest_asyncio.fixture
-async def async_db_session():
+async def async_db_session(test_engine):
     """Fixture to provide AsyncSession connected to test database."""
-    engine = create_async_engine(settings.DATABASE_URL)
+    engine = test_engine
     async_session = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     session = async_session()
     try:
