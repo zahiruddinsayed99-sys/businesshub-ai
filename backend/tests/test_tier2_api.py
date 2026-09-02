@@ -1,7 +1,9 @@
+from sqlalchemy.pool import NullPool
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.pool import NullPool
 from sqlalchemy import select, delete
 import uuid
 import asyncio
@@ -10,6 +12,7 @@ from datetime import datetime
 from app.main import app
 from app.core.config import settings
 from app.core.redis import get_redis_client, close_redis_client
+from app.domain.models.crm_deal import CrmDeal
 from app.domain.models.organization import Organization
 from app.domain.models.user import User
 from app.domain.models.user_role import UserRole
