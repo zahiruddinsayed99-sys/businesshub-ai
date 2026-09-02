@@ -1,7 +1,9 @@
+from sqlalchemy.pool import NullPool
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.pool import NullPool
 from sqlalchemy import select
 import uuid
 from datetime import datetime, timezone, timedelta
@@ -16,6 +18,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.domain.models.base import Base
 from app.core.redis import get_redis_client, close_redis_client
+from app.domain.models.crm_deal import CrmDeal
 
 pytestmark = pytest.mark.asyncio
 
@@ -26,7 +29,8 @@ def anyio_backend():
 @pytest_asyncio.fixture
 async def test_engine():
     # Use existing database since schema is populated via alembic, or isolate.
-    engine = create_async_engine(settings.DATABASE_URL, echo=False)
+    engine = create_async_engine(settings.DATABASE_URL, echo=False, poolclass=NullPool
+)
     yield engine
     await engine.dispose()
 

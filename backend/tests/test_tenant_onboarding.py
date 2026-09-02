@@ -1,3 +1,4 @@
+from sqlalchemy.pool import NullPool
 import uuid
 import pytest
 import pytest_asyncio
@@ -24,8 +25,9 @@ async def engine():
     await _engine.dispose()
 
 @pytest_asyncio.fixture
-async def async_db_session(engine):
+async def async_db_session(test_engine):
     """Fixture to provide AsyncSession connected to test database."""
+    engine = test_engine
     async_session = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     async with async_session() as session:
         yield session

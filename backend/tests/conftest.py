@@ -1,3 +1,7 @@
+from sqlalchemy.pool import NullPool
+import pytest
+import pytest_asyncio
+import os
 import sys
 import pytest_asyncio
 import redis.asyncio as aioredis
@@ -15,22 +19,10 @@ def pytest_configure(config):
         sys.exit(f"ABORT: Tests must run against a test database (URL must contain 'test'). Protect dev data! Current URL: {db_url}")
 
 @pytest_asyncio.fixture(scope="session")
-async def engine():
-    _engine = create_async_engine(settings.DATABASE_URL, poolclass=None)
-    yield _engine
-    await _engine.dispose()
-
-@pytest_asyncio.fixture
-async def async_db_session(engine):
-    """Fixture to provide AsyncSession connected to test database."""
-    from sqlalchemy import text
-    async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
-    async with async_session() as session:
-        yield session
-        try:
-            await session.rollback()
-        finally:
-            await session.close()
+async def test_engine():
+    db_url = os.environ.get("DATABASE_URL", str(settings.DATABASE_URL))
+    engine = create_async_engine(db_url, echo=False, poolclass=NullPool
+)
 
     async with engine.begin() as conn:
         await conn.execute(text("TRUNCATE TABLE ai_jobs CASCADE;"))
@@ -42,7 +34,18 @@ async def cleanup_redis_after_test():
     yield
     await close_redis_client()
 
-@pytest_asyncio.fixture
+from httpx import AsyncClient, ASGITransport
+from app.main import app
+
+# Create a mock for FastAPI BackgroundTasks
+from unittest.mock import AsyncMock, patch
+
+@pytest.fixture(autouse=True)
+def mock_background_tasks():
+    with patch("fastapi.BackgroundTasks.add_task", new_callable=AsyncMock) as mock_add_task:
+        yield mock_add_task
+
+@pytest_asyncio.fixture(scope="function")
 async def async_client():
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
