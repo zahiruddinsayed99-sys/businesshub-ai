@@ -23,7 +23,7 @@
       <textarea [ngModel]="courseDescription()" (ngModelChange)="courseDescription.set($event)"></textarea>
     </div>
     <button (click)="createCourse()">Save Course</button>
-    <button *ngIf="courseId()" class="publish-btn" (click)="publishCourse()">Publish Course</button>
+    <button *ngIf="courseId()" class="btn btn-primary publish-btn" (click)="publishCourse()">Publish Course</button>
   </div>
 
   <div class="author-controls" *ngIf="selectedCourseDetail()">
