@@ -126,16 +126,18 @@ export class TenantOnboardingComponent implements OnInit {
     this.errorMessage = null;
 
     const formValues = this.onboardingForm.value;
+
+    // Map to the Auth endpoint payload structure (Public Self-Service)
     const payload = {
-      org_name: formValues.org_name,
+      name: formValues.org_name,
       slug: formValues.slug || undefined,
-      admin_email: formValues.admin_email,
-      admin_password: formValues.admin_password,
-      admin_full_name: formValues.admin_full_name,
+      email: formValues.admin_email,
+      password: formValues.admin_password,
+      full_name: formValues.admin_full_name,
       invite_code: this.inviteCode
     };
 
-    this.tenantService.onboardTenant(payload).subscribe({
+    this.tenantService.publicOnboardTenant(payload).subscribe({
       next: (res) => {
         this.isSubmitting = false;
         this.onboardingSuccess = res;

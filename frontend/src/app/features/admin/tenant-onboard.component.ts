@@ -15,29 +15,53 @@ import { environment } from '../../../environments/environment';
 export class TenantOnboardComponent {
   private http = inject(HttpClient);
 
-  companyName = signal<string>('');
   orgName = signal<string>('');
   companySlug = signal<string>('');
+
   email = signal<string>('');
-  adminEmail = signal<string>('');
   password = signal<string>('');
-  adminPassword = signal<string>('');
   fullName = signal<string>('');
+
+  adminEmail = signal<string>('');
+  adminPassword = signal<string>('');
   adminFullName = signal<string>('');
+
+  slugEdited = signal<boolean>(false);
 
   isSubmitting = signal<boolean>(false);
   successMessage = signal<string | null>(null);
   errorMessage = signal<string | null>(null);
 
+  slugify(text: string): string {
+    return text
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  onOrgNameChange(name: string) {
+    this.orgName.set(name);
+    if (!this.slugEdited()) {
+      this.companySlug.set(this.slugify(name));
+    }
+  }
+
+  onSlugChange(slug: string) {
+    this.companySlug.set(slug);
+    this.slugEdited.set(true);
+  }
+
   createTenant() {
-    if (!this.companyName() || !this.companySlug()) return;
+    if (!this.orgName() || !this.companySlug()) return;
 
     this.isSubmitting.set(true);
     this.successMessage.set(null);
     this.errorMessage.set(null);
 
     this.http.post<any>(`${environment.apiUrl}/tenants/onboard`, {
-      name: this.companyName(),
+      name: this.orgName(),
       org_name: this.orgName(),
       slug: this.companySlug(),
       email: this.email(),
@@ -48,9 +72,16 @@ export class TenantOnboardComponent {
       admin_full_name: this.adminFullName()
     }).subscribe({
       next: (res) => {
-        this.successMessage.set(`Workspace for ${this.companyName()} created successfully!`);
-        this.companyName.set('');
+        this.successMessage.set(`Workspace for ${this.orgName()} created successfully!`);
+        this.orgName.set('');
         this.companySlug.set('');
+        this.email.set('');
+        this.password.set('');
+        this.fullName.set('');
+        this.adminEmail.set('');
+        this.adminPassword.set('');
+        this.adminFullName.set('');
+        this.slugEdited.set(false);
         this.isSubmitting.set(false);
       },
       error: (err) => {
