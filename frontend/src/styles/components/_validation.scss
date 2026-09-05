@@ -1,0 +1,29 @@
+/* Default Light/Neutral Error Styles */
+.field-error, .validation-error, .error-text, .error-msg {
+  color: #dc2626; /* Red 600 */
+  font-size: 0.8rem;
+  margin-top: 0.35rem;
+}
+
+.error-banner, .error-message, .alert-danger {
+  background: #fef2f2; /* Red 50 */
+  border: 1px solid #fecaca; /* Red 200 */
+  color: #b91c1c; /* Red 700 */
+  padding: 0.85rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Dark Theme overrides for Auth / Onboarding layouts */
+.auth-container {
+  .field-error, .validation-error, .error-text, .error-msg {
+    color: #f87171; /* Red 400 */
+  }
+
+  .error-banner, .error-message, .alert-danger {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #fca5a5; /* Red 300 */
+  }
+}

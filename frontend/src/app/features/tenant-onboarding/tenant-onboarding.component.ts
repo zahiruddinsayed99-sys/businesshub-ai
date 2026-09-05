@@ -126,16 +126,18 @@ export class TenantOnboardingComponent implements OnInit {
     this.errorMessage = null;
 
     const formValues = this.onboardingForm.value;
+
+    // Map to the Auth endpoint payload structure (Public Self-Service)
     const payload = {
-      org_name: formValues.org_name,
+      name: formValues.org_name,
       slug: formValues.slug || undefined,
-      admin_email: formValues.admin_email,
-      admin_password: formValues.admin_password,
-      admin_full_name: formValues.admin_full_name,
+      email: formValues.admin_email,
+      password: formValues.admin_password,
+      full_name: formValues.admin_full_name,
       invite_code: this.inviteCode
     };
 
-    this.tenantService.onboardTenant(payload).subscribe({
+    this.tenantService.publicOnboardTenant(payload).subscribe({
       next: (res) => {
         this.isSubmitting = false;
         this.onboardingSuccess = res;
@@ -152,6 +154,7 @@ export class TenantOnboardingComponent implements OnInit {
       },
     });
   }
+
   goToBilling() {
     if (this.onboardingSuccess && this.onboardingSuccess.access_token) {
       // 1. Save the token so the app knows the user is logged in
@@ -159,10 +162,16 @@ export class TenantOnboardingComponent implements OnInit {
       if (this.onboardingSuccess.organization_id) {
         localStorage.setItem('organization_id', this.onboardingSuccess.organization_id);
       }
-      // 2. Clear the success state
-      this.onboardingSuccess = null;
-      // 3. Navigate to the billing dashboard
-      this.router.navigate(['/billing']);
+
+      // Navigate to the billing dashboard.
+      // We do not clear this.onboardingSuccess = null here before navigation
+      // because that triggers Angular's change detection to immediately hide
+      // the success box and destroy the DOM element that contains this button
+      // *while* the click event is still processing, which can interrupt the route.
+
+      this.router.navigate(['/billing']).then(() => {
+        this.onboardingSuccess = null;
+      });
     }
   }
 }

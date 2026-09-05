@@ -19,7 +19,7 @@
         <div class="form-group">
           <label for="cardNumber">Card Number</label>
           <input type="text" id="cardNumber" formControlName="cardNumber" placeholder="1234123412341234">
-          <div class="error-msg" *ngIf="paymentForm.get('cardNumber')?.invalid && paymentForm.get('cardNumber')?.touched">
+          <div class="field-error" *ngIf="paymentForm.get('cardNumber')?.invalid && paymentForm.get('cardNumber')?.touched">
             Valid 16-digit card number is required.
           </div>
         </div>
@@ -28,7 +28,7 @@
           <div class="form-group">
             <label for="expiryDate">Expiry Date</label>
             <input type="text" id="expiryDate" formControlName="expiryDate" placeholder="MM/YY">
-            <div class="error-msg" *ngIf="paymentForm.get('expiryDate')?.invalid && paymentForm.get('expiryDate')?.touched">
+            <div class="field-error" *ngIf="paymentForm.get('expiryDate')?.invalid && paymentForm.get('expiryDate')?.touched">
               Valid expiry date (MM/YY) is required.
             </div>
           </div>
@@ -36,7 +36,7 @@
           <div class="form-group">
             <label for="cvv">CVV</label>
             <input type="text" id="cvv" formControlName="cvv" placeholder="123">
-            <div class="error-msg" *ngIf="paymentForm.get('cvv')?.invalid && paymentForm.get('cvv')?.touched">
+            <div class="field-error" *ngIf="paymentForm.get('cvv')?.invalid && paymentForm.get('cvv')?.touched">
               Valid CVV is required.
             </div>
           </div>
@@ -45,7 +45,7 @@
         <div class="form-group">
           <label for="nameOnCard">Name on Card</label>
           <input type="text" id="nameOnCard" formControlName="nameOnCard" placeholder="John Doe">
-          <div class="error-msg" *ngIf="paymentForm.get('nameOnCard')?.invalid && paymentForm.get('nameOnCard')?.touched">
+          <div class="field-error" *ngIf="paymentForm.get('nameOnCard')?.invalid && paymentForm.get('nameOnCard')?.touched">
             Name on card is required.
           </div>
         </div>
@@ -55,8 +55,8 @@
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn-cancel" (click)="onClose()" [disabled]="isLoading()">Cancel</button>
-          <button type="submit" class="btn-upgrade" [disabled]="isLoading()">
+          <button type="button" class="btn btn-secondary" (click)="onClose()" [disabled]="isLoading()">Cancel</button>
+          <button type="submit" class="btn btn-primary" [disabled]="isLoading()">
             <span *ngIf="!isLoading()">Upgrade Now ($99/mo)</span>
             <span *ngIf="isLoading()">Processing...</span>
           </button>

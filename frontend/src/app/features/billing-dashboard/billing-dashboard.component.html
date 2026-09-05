@@ -30,7 +30,7 @@
       <div class="form-group">
         <label for="gstin">GSTIN (15-character ID)</label>
         <input id="gstin" type="text" formControlName="gstin" class="form-control" />
-        <div *ngIf="gstinForm.controls.gstin.errors?.['pattern']" class="error-text">
+        <div *ngIf="gstinForm.controls.gstin.errors?.['pattern']" class="field-error">
           Invalid GSTIN format.
         </div>
       </div>
@@ -47,7 +47,7 @@
 
   <div class="actions mt-4">
     <button (click)="onCheckout()">Upgrade to PRO (Stripe Checkout)</button>
-    <button class="btn-upgrade-mock" (click)="openUpgradeModal()">Upgrade to PRO (Mock Checkout)</button>
+    <button class="btn btn-primary" (click)="openUpgradeModal()">Upgrade to PRO (Mock Checkout)</button>
     <button (click)="onCustomerPortal()">Manage Billing (Portal)</button>
   </div>
 

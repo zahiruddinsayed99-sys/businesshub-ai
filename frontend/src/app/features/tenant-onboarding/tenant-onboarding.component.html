@@ -1,10 +1,10 @@
-<div class="onboarding-container">
+<div class="auth-container">
   <div class="background-decor">
     <div class="glow-orb orb-1"></div>
     <div class="glow-orb orb-2"></div>
   </div>
 
-  <div class="onboarding-card">
+  <div class="auth-card">
     <div class="card-header">
       <div class="brand-badge">
         <span class="icon">🚀</span> BusinessHub AI
@@ -46,7 +46,7 @@
 
       <div class="token-preview">
         <span class="label">RS256 Access Token Issued</span>
-        <code>{{ onboardingSuccess.access_token.substring(0, 36) }}...</code>
+        <code>{{ onboardingSuccess.access_token?.substring(0, 36) }}...</code>
       </div>
 
       <button class="btn btn-primary btn-full" (click)="goToBilling()">
