@@ -3,6 +3,7 @@ import pytest
 from app.core.security import decode_token, create_access_token
 import uuid
 import datetime
+from app.domain.models.base import Base
 
 @pytest.mark.asyncio
 async def test_jwt_signing_verification():

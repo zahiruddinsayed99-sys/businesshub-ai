@@ -12,6 +12,7 @@ from app.core.config import settings
 from sqlalchemy import select
 from app.domain.models.organization import Organization
 from app.domain.models.user import User
+from app.domain.models.base import Base
 
 @pytest_asyncio.fixture(autouse=True)
 async def cleanup_redis_after_test():

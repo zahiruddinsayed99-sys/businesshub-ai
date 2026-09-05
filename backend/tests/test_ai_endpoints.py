@@ -15,11 +15,12 @@ from app.domain.models.organization_document import OrganizationDocument
 from app.domain.models.ai_job import AiJob
 from app.core.security import create_access_token
 from app.core.session import create_session
+import uuid
 
 pytestmark = pytest.mark.asyncio
 
 @pytest_asyncio.fixture
-async def setup_auth(db_session, reset_redis_client):
+async def setup_auth(db_session, cleanup_redis_after_test):
     redis = await get_redis_client()
     org = Organization(id=uuid.uuid4(), name="AI Tenant", slug="ai-tenant", ai_credits_used=0, bonus_ai_credits=0, subscription_tier="FREE")
     db_session.add(org)
@@ -68,19 +69,20 @@ async def test_ai_cross_tenant_isolation(setup_auth, db_session):
         "X-Organization-Id": str(setup_auth["org_id"])
     }
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test", headers=headers) as async_client:
-        # Create a job belonging to ANOTHER tenant (don't flush here without ID)
+        # 1. Use a real UUID object
         other_org_id = uuid.uuid4()
         other_org = Organization(id=other_org_id, name="Other", slug=f"other-{other_org_id}")
         db_session.add(other_org)
 
         other_job = AiJob(id=uuid.uuid4(), organization_id=other_org_id, status="COMPLETED")
         db_session.add(other_job)
-        await db_session.commit()
+        
+        # 2. Use flush() instead of commit()
+        await db_session.flush() 
 
         # Attempt to fetch it
         res = await async_client.get(f"/api/v1/ai/jobs/{other_job.id}")
         assert res.status_code == 404
-
 async def test_atomic_credit_deduction_and_blocking(db_session, monkeypatch):
     from app.domain.ai.gateway import AiGatewayService
     from app.core.billing import BillingError

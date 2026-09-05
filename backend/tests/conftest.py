@@ -9,11 +9,12 @@ import redis.asyncio as aioredis
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-
+from app.domain.models.base import Base
 from app.core.config import settings
 from app.core.redis import close_redis_client
 from app.main import app
-
+import asyncio
+from sqlalchemy import text
 
 def pytest_configure(config):
     db_url = settings.DATABASE_URL
@@ -36,12 +37,9 @@ async def test_engine():
 @pytest_asyncio.fixture(scope="function", autouse=True)
 async def db_cleanup(test_engine):
     yield
-    try:
-        async with test_engine.begin() as conn:
-            for table in reversed(Base.metadata.sorted_tables):
-                await conn.execute(text(f'TRUNCATE TABLE "{table.name}" CASCADE'))
-    except Exception:
-        pass
+    async with test_engine.begin() as conn:
+        for table in reversed(Base.metadata.sorted_tables):
+            await conn.execute(text(f'TRUNCATE TABLE "{table.name}" CASCADE'))
 
 @pytest_asyncio.fixture(scope="function")
 async def db_session(test_engine):

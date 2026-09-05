@@ -4,7 +4,7 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-
+from app.domain.models.base import Base
 from app.core.config import settings
 from app.core.redis import get_redis_client, close_redis_client
 from app.core.database import get_db

@@ -13,6 +13,7 @@ from app.main import app
 from app.core.database import get_db
 from app.core.redis import get_redis_client
 from app.core.config import settings
+from app.domain.models.base import Base
 
 @pytest_asyncio.fixture
 async def async_db_session():

@@ -8,7 +8,7 @@ from sqlalchemy import select, delete
 import uuid
 import asyncio
 from datetime import datetime
-
+from app.domain.models.base import Base
 from app.main import app
 from app.core.config import settings
 from app.core.redis import get_redis_client, close_redis_client
