@@ -1,3 +1,4 @@
+import pytest_asyncio
 from sqlalchemy.pool import NullPool
 import pytest
 import pytest_asyncio
@@ -13,6 +14,7 @@ from app.core.config import settings
 from app.core.redis import close_redis_client
 from app.main import app
 
+
 def pytest_configure(config):
     db_url = settings.DATABASE_URL
     if "test" not in db_url.lower():
@@ -25,9 +27,32 @@ async def test_engine():
 )
 
     async with engine.begin() as conn:
-        await conn.execute(text("TRUNCATE TABLE ai_jobs CASCADE;"))
-        await conn.execute(text("TRUNCATE TABLE organizations CASCADE;"))
-        await conn.execute(text("TRUNCATE TABLE users CASCADE;"))
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
+
+    yield engine
+    await engine.dispose()
+
+@pytest_asyncio.fixture(scope="function", autouse=True)
+async def db_cleanup(test_engine):
+    yield
+    try:
+        async with test_engine.begin() as conn:
+            for table in reversed(Base.metadata.sorted_tables):
+                await conn.execute(text(f'TRUNCATE TABLE "{table.name}" CASCADE'))
+    except Exception:
+        pass
+
+@pytest_asyncio.fixture(scope="function")
+async def db_session(test_engine):
+    async_session = AsyncSession(test_engine, expire_on_commit=False)
+    try:
+        yield async_session
+    finally:
+        await async_session.rollback()
+        await async_session.close()
+
+from app.core.redis import get_redis_client, close_redis_client
 
 @pytest_asyncio.fixture(autouse=True)
 async def cleanup_redis_after_test():
@@ -51,3 +76,12 @@ async def async_client():
         transport=ASGITransport(app=app), base_url="http://test"
     ) as client:
         yield client
+
+@pytest_asyncio.fixture(autouse=True)
+async def cleanup_background_tasks():
+    yield
+    tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+    for task in tasks:
+        task.cancel()
+    if tasks:
+        await asyncio.gather(*tasks, return_exceptions=True)
