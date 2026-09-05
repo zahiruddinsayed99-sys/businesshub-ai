@@ -1,3 +1,4 @@
+import pytest_asyncio
 from sqlalchemy.pool import NullPool
 import pytest
 import pytest_asyncio
@@ -10,20 +11,12 @@ from sqlalchemy.pool import NullPool
 from app.core.config import settings
 from app.domain.models.base import Base
 
+
 def pytest_configure(config):
     db_url = os.environ.get("DATABASE_URL", str(settings.DATABASE_URL))
     if db_url and "test" not in db_url.lower():
         sys.exit(f"ABORT: Tests must run against a test database (URL must contain 'test'). Protect dev data! Current URL: {db_url}")
 
-@pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
-
-@pytest.fixture(scope="session")
-def anyio_backend():
-    return "asyncio"
 
 @pytest_asyncio.fixture(scope="session")
 async def test_engine():
@@ -54,6 +47,7 @@ async def db_session(test_engine):
     try:
         yield async_session
     finally:
+        await async_session.rollback()
         await async_session.close()
 
 from app.core.redis import get_redis_client, close_redis_client
@@ -78,3 +72,12 @@ def mock_background_tasks():
 async def async_client():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         yield client
+
+@pytest_asyncio.fixture(autouse=True)
+async def cleanup_background_tasks():
+    yield
+    tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+    for task in tasks:
+        task.cancel()
+    if tasks:
+        await asyncio.gather(*tasks, return_exceptions=True)
