@@ -21,10 +21,10 @@ export class TenantOnboardComponent {
   email = signal<string>('');
   password = signal<string>('');
   fullName = signal<string>('');
-
   adminEmail = signal<string>('');
   adminPassword = signal<string>('');
   adminFullName = signal<string>('');
+  slugEdited = signal<boolean>(false);
 
   slugEdited = signal<boolean>(false);
 
@@ -60,6 +60,9 @@ export class TenantOnboardComponent {
     this.successMessage.set(null);
     this.errorMessage.set(null);
 
+    // Send the specific JSON payload with duplicated fields for backwards compatibility with the endpoint
+    // "name": "string", "org_name": "string" -> Use orgName for both
+    // "email": "string", "admin_email": "string" -> Use adminEmail for both
     this.http.post<any>(`${environment.apiUrl}/tenants/onboard`, {
       name: this.orgName(),
       org_name: this.orgName(),

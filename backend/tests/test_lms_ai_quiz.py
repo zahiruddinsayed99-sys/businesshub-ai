@@ -1,3 +1,4 @@
+from sqlalchemy.pool import NullPool
 import pytest
 import pytest_asyncio
 import uuid
@@ -14,12 +15,12 @@ from app.main import app
 from app.core.database import get_db
 from app.core.redis import get_redis_client
 from app.core.config import settings
-
+from app.domain.models.base import Base
 
 
 @pytest_asyncio.fixture
-async def async_db_session():
-    engine = create_async_engine(settings.DATABASE_URL)
+async def async_db_session(test_engine):
+    engine = test_engine
     async_session = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     async with async_session() as session:
         yield session

@@ -1,10 +1,11 @@
+from sqlalchemy.pool import NullPool
 import uuid
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-
+from app.domain.models.base import Base
 from app.core.config import settings
 from app.core.redis import close_redis_client
 from app.domain.models.organization import Organization
