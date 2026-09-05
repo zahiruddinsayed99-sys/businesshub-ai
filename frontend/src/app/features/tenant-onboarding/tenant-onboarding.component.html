@@ -46,7 +46,7 @@
 
       <div class="token-preview">
         <span class="label">RS256 Access Token Issued</span>
-        <code>{{ onboardingSuccess.access_token.substring(0, 36) }}...</code>
+        <code>{{ onboardingSuccess.access_token?.substring(0, 36) }}...</code>
       </div>
 
       <button class="btn btn-primary btn-full" (click)="goToBilling()">

@@ -17,6 +17,10 @@ export class TenantOnboardComponent {
 
   orgName = signal<string>('');
   companySlug = signal<string>('');
+
+  email = signal<string>('');
+  password = signal<string>('');
+  fullName = signal<string>('');
   adminEmail = signal<string>('');
   adminPassword = signal<string>('');
   adminFullName = signal<string>('');
@@ -61,17 +65,20 @@ export class TenantOnboardComponent {
       name: this.orgName(),
       org_name: this.orgName(),
       slug: this.companySlug(),
-      email: this.adminEmail(),
+      email: this.email(),
       admin_email: this.adminEmail(),
-      password: this.adminPassword(),
+      password: this.password(),
       admin_password: this.adminPassword(),
-      full_name: this.adminFullName(),
+      full_name: this.fullName(),
       admin_full_name: this.adminFullName()
     }).subscribe({
       next: (res) => {
         this.successMessage.set(`Workspace for ${this.orgName()} created successfully!`);
         this.orgName.set('');
         this.companySlug.set('');
+        this.email.set('');
+        this.password.set('');
+        this.fullName.set('');
         this.adminEmail.set('');
         this.adminPassword.set('');
         this.adminFullName.set('');

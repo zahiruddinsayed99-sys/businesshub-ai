@@ -4,19 +4,21 @@ import pytest
 import pytest_asyncio
 import os
 import sys
-import asyncio
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.pool import NullPool
+import pytest_asyncio
+import redis.asyncio as aioredis
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+
 from app.core.config import settings
-from app.domain.models.base import Base
+from app.core.redis import close_redis_client
+from app.main import app
 
 
 def pytest_configure(config):
-    db_url = os.environ.get("DATABASE_URL", str(settings.DATABASE_URL))
-    if db_url and "test" not in db_url.lower():
+    db_url = settings.DATABASE_URL
+    if "test" not in db_url.lower():
         sys.exit(f"ABORT: Tests must run against a test database (URL must contain 'test'). Protect dev data! Current URL: {db_url}")
-
 
 @pytest_asyncio.fixture(scope="session")
 async def test_engine():
@@ -52,8 +54,8 @@ async def db_session(test_engine):
 
 from app.core.redis import get_redis_client, close_redis_client
 
-@pytest_asyncio.fixture(scope="function", autouse=True)
-async def reset_redis_client():
+@pytest_asyncio.fixture(autouse=True)
+async def cleanup_redis_after_test():
     yield
     await close_redis_client()
 
@@ -70,7 +72,9 @@ def mock_background_tasks():
 
 @pytest_asyncio.fixture(scope="function")
 async def async_client():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         yield client
 
 @pytest_asyncio.fixture(autouse=True)
