@@ -154,6 +154,7 @@ export class TenantOnboardingComponent implements OnInit {
       },
     });
   }
+
   goToBilling() {
     if (this.onboardingSuccess && this.onboardingSuccess.access_token) {
       // 1. Save the token so the app knows the user is logged in
@@ -161,10 +162,16 @@ export class TenantOnboardingComponent implements OnInit {
       if (this.onboardingSuccess.organization_id) {
         localStorage.setItem('organization_id', this.onboardingSuccess.organization_id);
       }
-      // 2. Clear the success state
-      this.onboardingSuccess = null;
-      // 3. Navigate to the billing dashboard
-      this.router.navigate(['/billing']);
+
+      // Navigate to the billing dashboard.
+      // We do not clear this.onboardingSuccess = null here before navigation
+      // because that triggers Angular's change detection to immediately hide
+      // the success box and destroy the DOM element that contains this button
+      // *while* the click event is still processing, which can interrupt the route.
+
+      this.router.navigate(['/billing']).then(() => {
+        this.onboardingSuccess = null;
+      });
     }
   }
 }

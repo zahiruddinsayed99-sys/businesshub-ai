@@ -26,6 +26,8 @@ export class TenantOnboardComponent {
   adminFullName = signal<string>('');
   slugEdited = signal<boolean>(false);
 
+  slugEdited = signal<boolean>(false);
+
   isSubmitting = signal<boolean>(false);
   successMessage = signal<string | null>(null);
   errorMessage = signal<string | null>(null);

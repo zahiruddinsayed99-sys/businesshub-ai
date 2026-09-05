@@ -1,20 +1,20 @@
-import pytest_asyncio
-from sqlalchemy.pool import NullPool
-import pytest
-import pytest_asyncio
 import os
 import sys
+import asyncio
+import pytest
 import pytest_asyncio
 import redis.asyncio as aioredis
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text
+from unittest.mock import AsyncMock, patch
+
 from app.domain.models.base import Base
 from app.core.config import settings
-from app.core.redis import close_redis_client
+from app.core.redis import close_redis_client, get_redis_client
 from app.main import app
-import asyncio
-from sqlalchemy import text
 
 def pytest_configure(config):
     db_url = settings.DATABASE_URL
@@ -24,8 +24,7 @@ def pytest_configure(config):
 @pytest_asyncio.fixture(scope="session")
 async def test_engine():
     db_url = os.environ.get("DATABASE_URL", str(settings.DATABASE_URL))
-    engine = create_async_engine(db_url, echo=False, poolclass=NullPool
-)
+    engine = create_async_engine(db_url, echo=False, poolclass=NullPool)
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
@@ -50,18 +49,10 @@ async def db_session(test_engine):
         await async_session.rollback()
         await async_session.close()
 
-from app.core.redis import get_redis_client, close_redis_client
-
 @pytest_asyncio.fixture(autouse=True)
 async def cleanup_redis_after_test():
     yield
     await close_redis_client()
-
-from httpx import AsyncClient, ASGITransport
-from app.main import app
-
-# Create a mock for FastAPI BackgroundTasks
-from unittest.mock import AsyncMock, patch
 
 @pytest.fixture(autouse=True)
 def mock_background_tasks():
