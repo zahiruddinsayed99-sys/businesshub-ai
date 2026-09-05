@@ -28,25 +28,25 @@
       <div class="details-grid">
         <div class="detail-item">
           <span class="label">Organization Name</span>
-          <span class="value">{{ onboardingSuccess.org_name }}</span>
+          <span class="value">{{ onboardingSuccess.data.org_name }}</span>
         </div>
         <div class="detail-item">
           <span class="label">Workspace Slug</span>
-          <span class="value badge">{{ onboardingSuccess.slug }}</span>
+          <span class="value badge">{{ onboardingSuccess.data.slug }}</span>
         </div>
         <div class="detail-item">
           <span class="label">Admin Email</span>
-          <span class="value">{{ onboardingSuccess.admin_email }}</span>
+          <span class="value">{{ onboardingSuccess.data.admin_email }}</span>
         </div>
         <div class="detail-item">
           <span class="label">Tenant ID</span>
-          <span class="value code">{{ onboardingSuccess.organization_id }}</span>
+          <span class="value code">{{ onboardingSuccess.data.organization_id }}</span>
         </div>
       </div>
 
       <div class="token-preview">
         <span class="label">RS256 Access Token Issued</span>
-        <code>{{ onboardingSuccess.access_token?.substring(0, 36) }}...</code>
+        <code>{{ onboardingSuccess.data.access_token?.substring(0, 36) }}...</code>
       </div>
 
       <button class="btn btn-primary btn-full" (click)="goToBilling()">

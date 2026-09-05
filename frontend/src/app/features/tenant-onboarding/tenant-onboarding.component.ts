@@ -156,22 +156,21 @@ export class TenantOnboardingComponent implements OnInit {
   }
 
   goToBilling() {
-    if (this.onboardingSuccess && this.onboardingSuccess.access_token) {
-      // 1. Save the token so the app knows the user is logged in
-      localStorage.setItem('access_token', this.onboardingSuccess.access_token);
-      if (this.onboardingSuccess.organization_id) {
-        localStorage.setItem('organization_id', this.onboardingSuccess.organization_id);
+    // Look inside the nested .data object!
+    if (this.onboardingSuccess && this.onboardingSuccess.data && this.onboardingSuccess.data.access_token) {
+
+      // 1. Save the token and organization_id
+      localStorage.setItem('access_token', this.onboardingSuccess.data.access_token);
+
+      if (this.onboardingSuccess.data.organization_id) {
+        localStorage.setItem('organization_id', this.onboardingSuccess.data.organization_id);
       }
 
-      // Navigate to the billing dashboard.
-      // We do not clear this.onboardingSuccess = null here before navigation
-      // because that triggers Angular's change detection to immediately hide
-      // the success box and destroy the DOM element that contains this button
-      // *while* the click event is still processing, which can interrupt the route.
+      // 2. Force the hard redirect to re-bootstrap the app state
+      window.location.href = '/crm';
 
-      this.router.navigate(['/billing']).then(() => {
-        this.onboardingSuccess = null;
-      });
+    } else {
+      console.error('Failed to find access_token in response:', this.onboardingSuccess);
     }
   }
 }

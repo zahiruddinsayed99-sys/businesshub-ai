@@ -26,16 +26,18 @@ export interface PublicOnboardRequest {
 }
 
 export interface TenantOnboardResponse {
-  organization_id: string;
-  org_name: string;
-  slug: string;
-  admin_user_id: string;
-  admin_email: string;
-  access_token: string;
-  token_type: string;
-  expires_in: number;
+  status: string;
+  data: {
+    organization_id: string;
+    org_name: string;
+    slug: string;
+    admin_email: string;
+    user_id: string;
+    access_token: string;
+    token_type: string;
+    expires_in: number;
+  };
 }
-
 export interface SlugCheckResponse {
   slug: string;
   available: boolean;
