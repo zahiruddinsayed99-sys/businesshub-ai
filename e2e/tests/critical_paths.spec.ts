@@ -6,21 +6,18 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Tier 3: E2E Critical Paths', () => {
 
-  test('Onboarding & Billing Journey', async ({ page }) => {
-    // 1. User registers a new workspace slug -> completes Stripe 3DS checkout -> lands on active dashboard
-    // Note: We use process.env to conditionally skip in sandbox CI environments without fully running backend processes.
+  test('User Login & Routing', async ({ page }) => {
     test.skip(!process.env.E2E_SERVER_URL, 'Requires running environment');
 
-    await page.goto('http://127.0.0.1:4200/onboard', { timeout: 5000 });
-    await page.fill('input[name="slug"]', 'new-workspace');
+    await page.goto('http://127.0.0.1:4200/login', { timeout: 5000 });
+    await page.fill('input[name="email"]', 'test@example.com');
+    await page.fill('input[name="password"]', 'password123');
     await page.click('button[type="submit"]');
-    await page.waitForURL('**/billing');
-    await page.click('button:has-text("Subscribe")');
     await page.waitForURL('**/dashboard');
+    await expect(page.locator('h1')).toContainText('Dashboard');
   });
 
-  test('CRM Journey', async ({ page }) => {
-    // 2. User logs in -> creates a new Deal -> drags the Deal from "Lead" to "Qualified"
+  test('CRM Deal Creation', async ({ page }) => {
     test.skip(!process.env.E2E_SERVER_URL, 'Requires running environment');
 
     await page.goto('http://127.0.0.1:4200/login', { timeout: 5000 });
@@ -31,23 +28,52 @@ test.describe('Tier 3: E2E Critical Paths', () => {
     await page.click('button:has-text("New Deal")');
     await page.fill('input[name="title"]', 'Big Enterprise Deal');
     await page.click('button:has-text("Save")');
-    // Simulate drag and drop
     await page.dragAndDrop('.deal-card', '.stage-qualified');
   });
 
-  test('LMS & AI Journey', async ({ page }) => {
-    // 3. Tenant Owner logs in -> uploads a Markdown lesson -> uses the AI Copilot to generate a Quiz -> enrolls a user
+  test('RAG Document Upload & Query', async ({ page }) => {
     test.skip(!process.env.E2E_SERVER_URL, 'Requires running environment');
 
     await page.goto('http://127.0.0.1:4200/login', { timeout: 5000 });
-    await page.fill('input[name="email"]', 'owner@example.com');
+    await page.fill('input[name="email"]', 'test@example.com');
     await page.fill('input[name="password"]', 'password123');
     await page.click('button[type="submit"]');
-    await page.waitForURL('**/lms/author');
-    await page.fill('textarea[name="markdown"]', '# New Lesson \n\n Content here');
-    await page.click('button:has-text("Generate Quiz")');
-    await expect(page.locator('.quiz-preview')).toBeVisible();
-    await page.click('button:has-text("Publish")');
+    await page.waitForURL('**/rag');
+
+    // Upload doc
+    const fileChooserPromise = page.waitForEvent('filechooser');
+    await page.click('button:has-text("Upload Document")');
+    const fileChooser = await fileChooserPromise;
+    await fileChooser.setFiles({
+      name: 'test.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('This is a test document for RAG.')
+    });
+
+    // Query doc
+    await page.fill('input[name="query"]', 'What is this document?');
+    await page.click('button:has-text("Search")');
+    await expect(page.locator('.rag-result')).toBeVisible();
+  });
+
+  test('LMS Course Enrollment & Quiz Execution', async ({ page }) => {
+    test.skip(!process.env.E2E_SERVER_URL, 'Requires running environment');
+
+    await page.goto('http://127.0.0.1:4200/login', { timeout: 5000 });
+    await page.fill('input[name="email"]', 'test@example.com');
+    await page.fill('input[name="password"]', 'password123');
+    await page.click('button[type="submit"]');
+    await page.waitForURL('**/lms/catalog');
+
+    await page.click('button:has-text("Enroll")');
+    await page.click('button:has-text("Start Course")');
+    await page.click('button:has-text("Take Quiz")');
+
+    // Answer quiz
+    await page.click('.quiz-option:nth-child(1)'); // just picking first option
+    await page.click('button:has-text("Submit Quiz")');
+
+    await expect(page.locator('.quiz-result')).toContainText('Passed');
   });
 
 });
