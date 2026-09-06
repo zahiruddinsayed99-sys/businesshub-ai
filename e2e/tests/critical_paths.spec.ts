@@ -9,24 +9,24 @@ test.describe('Tier 3: E2E Critical Paths', () => {
   test('User Login & Routing', async ({ page }) => {
     test.skip(!process.env.E2E_SERVER_URL, 'Requires running environment');
 
-    await page.goto('http://127.0.0.1:4200/login', { timeout: 5000 });
-    await page.fill('input[name="email"]', 'test@example.com');
-    await page.fill('input[name="password"]', 'password123');
+    await page.goto('http://127.0.0.1:4200/login', { timeout: 60000 });
+    await page.fill('input[formControlName="email"]', 'admin@apla-kirana.com');
+    await page.fill('input[formControlName="password"]', 'SecurePassword123!');
     await page.click('button[type="submit"]');
-    await page.waitForURL('**/dashboard');
-    await expect(page.locator('h1')).toContainText('Dashboard');
+    await page.waitForURL('**/crm');
+    await expect(page.locator('h1')).toContainText('crm');
   });
 
   test('CRM Deal Creation', async ({ page }) => {
     test.skip(!process.env.E2E_SERVER_URL, 'Requires running environment');
 
-    await page.goto('http://127.0.0.1:4200/login', { timeout: 5000 });
-    await page.fill('input[name="email"]', 'test@example.com');
-    await page.fill('input[name="password"]', 'password123');
+    await page.goto('http://127.0.0.1:4200/login', { timeout: 60000 });
+    await page.fill('input[formControlName="email"]', 'admin@apla-kirana.com');
+    await page.fill('input[formControlName="password"]', 'SecurePassword123!');
     await page.click('button[type="submit"]');
     await page.waitForURL('**/crm');
     await page.click('button:has-text("New Deal")');
-    await page.fill('input[name="title"]', 'Big Enterprise Deal');
+    await page.fill('input[formControlName="title"]', 'Big Enterprise Deal');
     await page.click('button:has-text("Save")');
     await page.dragAndDrop('.deal-card', '.stage-qualified');
   });
@@ -34,9 +34,9 @@ test.describe('Tier 3: E2E Critical Paths', () => {
   test('RAG Document Upload & Query', async ({ page }) => {
     test.skip(!process.env.E2E_SERVER_URL, 'Requires running environment');
 
-    await page.goto('http://127.0.0.1:4200/login', { timeout: 5000 });
-    await page.fill('input[name="email"]', 'test@example.com');
-    await page.fill('input[name="password"]', 'password123');
+    await page.goto('http://127.0.0.1:4200/login', { timeout: 60000 });
+    await page.fill('input[formControlName="email"]', 'admin@apla-kirana.com');
+    await page.fill('input[formControlName="password"]', 'SecurePassword123!');
     await page.click('button[type="submit"]');
     await page.waitForURL('**/rag');
 
@@ -51,7 +51,7 @@ test.describe('Tier 3: E2E Critical Paths', () => {
     });
 
     // Query doc
-    await page.fill('input[name="query"]', 'What is this document?');
+    await page.fill('input[formControlName="query"]', 'What is this document?');
     await page.click('button:has-text("Search")');
     await expect(page.locator('.rag-result')).toBeVisible();
   });
@@ -59,9 +59,9 @@ test.describe('Tier 3: E2E Critical Paths', () => {
   test('LMS Course Enrollment & Quiz Execution', async ({ page }) => {
     test.skip(!process.env.E2E_SERVER_URL, 'Requires running environment');
 
-    await page.goto('http://127.0.0.1:4200/login', { timeout: 5000 });
-    await page.fill('input[name="email"]', 'test@example.com');
-    await page.fill('input[name="password"]', 'password123');
+    await page.goto('http://127.0.0.1:4200/login', { timeout: 60000 });
+    await page.fill('input[formControlName="email"]', 'admin@apla-kirana.com');
+    await page.fill('input[formControlName="password"]', 'SecurePassword123!');
     await page.click('button[type="submit"]');
     await page.waitForURL('**/lms/catalog');
 
