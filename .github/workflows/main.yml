@@ -45,7 +45,7 @@ jobs:
         env:
           DATABASE_URL: postgresql+asyncpg://postgres:postgres_dev_password_secure_123@localhost:5432/app-db-test
 
-          TESTING: 'True'
+          TESTING: 'True' 
         run: |
           python -c "
                   import asyncio
