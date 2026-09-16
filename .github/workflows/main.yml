@@ -12,7 +12,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:pgvector:pg15
+        image: pgvector/pgvector:pg15
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres_dev_password_secure_123
@@ -41,21 +41,25 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Enable Vector Extension
+        run: |
+          python - <<EOF
+          import asyncio
+          import asyncpg
+
+          async def enable_vector():
+              conn = await asyncpg.connect('postgresql://postgres:postgres_dev_password_secure_123@localhost:5432/app-db-test')
+              await conn.execute('CREATE EXTENSION IF NOT EXISTS vector;')
+              await conn.close()
+
+          asyncio.run(enable_vector())
+          EOF
+
       - name: Run Backend Tests
         env:
           DATABASE_URL: postgresql+asyncpg://postgres:postgres_dev_password_secure_123@localhost:5432/app-db-test
-
-          TESTING: 'True' 
+          TESTING: 'True'
         run: |
-          python -c "
-                  import asyncio
-                  async def enable_vector():
-                      import asyncpg
-                      conn = await asyncpg.connect('postgresql://postgres:postgres_dev_password_secure_123@localhost:5432/app-db-test')
-                      await conn.execute('CREATE EXTENSION IF NOT EXISTS vector;')
-                      await conn.close()
-                  asyncio.run(enable_vector())
-                  "
           cd backend
           pytest
 
