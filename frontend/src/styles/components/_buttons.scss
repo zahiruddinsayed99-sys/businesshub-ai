@@ -1,0 +1,90 @@
+.btn {
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 0.85rem 1.25rem;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+
+  &.btn-primary {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    color: white;
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
+
+    &:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(79, 70, 229, 0.6);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+  }
+
+  /* Default Light/Neutral Secondary Button */
+  &.btn-secondary {
+    background: #f1f5f9; /* Slate 100 */
+    color: #334155; /* Slate 700 */
+    border: 1px solid #cbd5e1; /* Slate 300 */
+
+    &:hover:not(:disabled) {
+      background: #e2e8f0; /* Slate 200 */
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  &.btn-full {
+    width: 100%;
+  }
+}
+
+/* Dark Theme overrides for Auth / Onboarding layouts */
+.auth-container {
+  .btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: #f8fafc;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.15);
+    }
+  }
+}
+
+.spinner-text {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Default Light/Neutral Spinner */
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-top-color: #6366f1; /* Indigo */
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Dark Theme Spinners */
+.auth-container .spinner,
+.btn-primary .spinner {
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

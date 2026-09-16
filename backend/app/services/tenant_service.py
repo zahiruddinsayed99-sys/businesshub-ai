@@ -35,6 +35,7 @@ class TenantService:
         response: Response,
         payload: TenantOnboardRequest,
         role: str = "TENANT_OWNER",
+        is_internal_admin: bool = False
     ) -> Tuple[Organization, str, str, str, int]:
         # Resolve request attributes
         org_name = payload.resolved_org_name
@@ -53,7 +54,7 @@ class TenantService:
                 detail="Organization slug already registered",
             )
 
-        # 2. Check if email exists -> 409 Conflict
+        # 2. Check if primary email exists -> 409 Conflict
         existing_user = await self.repo.get_user_by_email(db, email)
         if existing_user:
             raise HTTPException(
@@ -61,21 +62,40 @@ class TenantService:
                 detail="Email already registered",
             )
 
-        # 3. Hash password
+        # 3. Handle specific secondary credentials if invoked by internal tool
+        secondary_email = None
+        secondary_hashed_password = None
+        secondary_full_name = None
+        if is_internal_admin and payload.email and payload.email != payload.admin_email:
+            existing_sec_user = await self.repo.get_user_by_email(db, payload.email)
+            if existing_sec_user:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Domain Member Email already registered",
+                )
+            secondary_email = payload.email
+            secondary_hashed_password = hash_password(payload.password)
+            secondary_full_name = payload.full_name
+
+        # 4. Hash primary password
         hashed_password = hash_password(password)
 
-        # 4. Atomic DB transaction (Org, Admin User, UserRole)
+        # 5. Atomic DB transaction (Org, Admin User, UserRole, Optional Sec User)
         org, user, user_role = await self.repo.create_tenant(
             db=db,
             org_name=org_name,
             slug=slug,
-            admin_email=email,
-            hashed_password=hashed_password,
-            admin_full_name=full_name,
-            role=role,
+            admin_email=payload.admin_email if is_internal_admin and payload.admin_email else email,
+            hashed_password=hash_password(payload.admin_password) if is_internal_admin and payload.admin_password else hashed_password,
+            admin_full_name=payload.admin_full_name if is_internal_admin and payload.admin_full_name else full_name,
+            role=role if not is_internal_admin else "ADMIN",
+            secondary_email=secondary_email,
+            secondary_hashed_password=secondary_hashed_password,
+            secondary_full_name=secondary_full_name,
+            secondary_role="TENANT_OWNER"
         )
 
-        # 5. Generate RS256 token set and stateful session
+        # 6. Generate RS256 token set and stateful session (Using the created user which is Admin in internal tool, or Owner in public flow)
         token_id = str(uuid.uuid4())
         access_token, _ = create_access_token(
             user_id=user.id,
@@ -95,7 +115,7 @@ class TenantService:
             ttl_seconds=7 * 24 * 3600,
         )
 
-        # 6. Set HttpOnly Cookie for refresh token
+        # 7. Set HttpOnly Cookie for refresh token
         response.set_cookie(
             key="refresh_token",
             value=refresh_token,
@@ -116,7 +136,7 @@ class TenantService:
         payload: TenantOnboardRequest,
     ) -> StandardOnboardResponse:
         org, user_id_str, access_token, _, expires_in = await self.onboard_tenant_internal(
-            db=db, redis=redis, response=response, payload=payload, role="TENANT_OWNER"
+            db=db, redis=redis, response=response, payload=payload, role="TENANT_OWNER", is_internal_admin=False
         )
         return StandardOnboardResponse(
             status="success",
@@ -137,14 +157,14 @@ class TenantService:
         payload: TenantOnboardRequest,
     ) -> TenantOnboardResponse:
         org, user_id_str, access_token, _, expires_in = await self.onboard_tenant_internal(
-            db=db, redis=redis, response=response, payload=payload, role="TENANT_OWNER"
+            db=db, redis=redis, response=response, payload=payload, role="ADMIN", is_internal_admin=True
         )
         return TenantOnboardResponse(
             organization_id=org.id,
             org_name=org.name,
             slug=org.slug,
             admin_user_id=uuid.UUID(user_id_str),
-            admin_email=payload.resolved_email,
+            admin_email=payload.admin_email or payload.resolved_email,
             access_token=access_token,
             token_type="bearer",
             expires_in=expires_in,

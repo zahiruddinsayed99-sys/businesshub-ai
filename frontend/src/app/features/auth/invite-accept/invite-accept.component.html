@@ -1,8 +1,15 @@
-<div class="invite-container">
-  <div class="invite-box">
-    <h2>Complete Your Account Setup</h2>
+<div class="auth-container">
+    <div class="background-decor">
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+  </div>
 
-    <div class="error-message" *ngIf="error">
+  <div class="auth-card">
+    <div class="card-header">
+      <h2>Complete Your Account Setup</h2>
+    </div>
+
+    <div class="error-banner" *ngIf="error">
       {{ error }}
     </div>
 
@@ -19,7 +26,7 @@
           formControlName="full_name"
           placeholder="Enter your full name"
         />
-        <div class="validation-error" *ngIf="inviteForm.get('full_name')?.invalid && inviteForm.get('full_name')?.touched">
+        <div class="field-error" *ngIf="inviteForm.get('full_name')?.invalid && inviteForm.get('full_name')?.touched">
           Full name is required
         </div>
       </div>
@@ -32,12 +39,12 @@
           formControlName="password"
           placeholder="Create a password (min 8 chars)"
         />
-        <div class="validation-error" *ngIf="inviteForm.get('password')?.invalid && inviteForm.get('password')?.touched">
+        <div class="field-error" *ngIf="inviteForm.get('password')?.invalid && inviteForm.get('password')?.touched">
           Password must be at least 8 characters
         </div>
       </div>
 
-      <button type="submit" [disabled]="inviteForm.invalid || loading || !token" class="btn-primary">
+      <button type="submit" [disabled]="inviteForm.invalid || loading || !token" class="btn btn-primary">
         {{ loading ? 'Saving...' : 'Save & Continue' }}
       </button>
     </form>

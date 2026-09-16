@@ -126,16 +126,18 @@ export class TenantOnboardingComponent implements OnInit {
     this.errorMessage = null;
 
     const formValues = this.onboardingForm.value;
+
+    // Map to the Auth endpoint payload structure (Public Self-Service)
     const payload = {
-      org_name: formValues.org_name,
+      name: formValues.org_name,
       slug: formValues.slug || undefined,
-      admin_email: formValues.admin_email,
-      admin_password: formValues.admin_password,
-      admin_full_name: formValues.admin_full_name,
+      email: formValues.admin_email,
+      password: formValues.admin_password,
+      full_name: formValues.admin_full_name,
       invite_code: this.inviteCode
     };
 
-    this.tenantService.onboardTenant(payload).subscribe({
+    this.tenantService.publicOnboardTenant(payload).subscribe({
       next: (res) => {
         this.isSubmitting = false;
         this.onboardingSuccess = res;
@@ -152,17 +154,23 @@ export class TenantOnboardingComponent implements OnInit {
       },
     });
   }
+
   goToBilling() {
-    if (this.onboardingSuccess && this.onboardingSuccess.access_token) {
-      // 1. Save the token so the app knows the user is logged in
-      localStorage.setItem('access_token', this.onboardingSuccess.access_token);
-      if (this.onboardingSuccess.organization_id) {
-        localStorage.setItem('organization_id', this.onboardingSuccess.organization_id);
+    // Look inside the nested .data object!
+    if (this.onboardingSuccess && this.onboardingSuccess.data && this.onboardingSuccess.data.access_token) {
+
+      // 1. Save the token and organization_id
+      localStorage.setItem('access_token', this.onboardingSuccess.data.access_token);
+
+      if (this.onboardingSuccess.data.organization_id) {
+        localStorage.setItem('organization_id', this.onboardingSuccess.data.organization_id);
       }
-      // 2. Clear the success state
-      this.onboardingSuccess = null;
-      // 3. Navigate to the billing dashboard
-      this.router.navigate(['/billing']);
+
+      // 2. Force the hard redirect to re-bootstrap the app state
+      window.location.href = '/crm';
+
+    } else {
+      console.error('Failed to find access_token in response:', this.onboardingSuccess);
     }
   }
 }

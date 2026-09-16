@@ -181,3 +181,65 @@ async def stripe_webhook(
         await redis.delete(lock_key)
 
     return {"status": "success"}
+
+from app.schemas.billing import UpgradeRequest
+from app.domain.models.user import User
+from app.domain.models.user_role import UserRole
+from app.core.security import create_access_token, create_refresh_token
+from app.core.session import create_session
+
+@router.post("/upgrade")
+async def upgrade_to_pro(
+    payload: UpgradeRequest,
+    context: TenantContext = Depends(RequiresPermission("tenant:billing")),
+    db: AsyncSession = Depends(get_db),
+    redis: aioredis.Redis = Depends(get_redis_client),
+):
+    stmt = select(Organization).where(Organization.id == context.organization_id)
+    result = await db.execute(stmt)
+    organization = result.scalars().first()
+
+    if not organization:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    # Update organization tier to PRO
+    organization.subscription_tier = "PRO"
+    organization.subscription_status = "ACTIVE"
+    await db.commit()
+
+    # Re-issue a fresh JWT token to dynamically apply the updated role/tier
+    # We need the user email and roles
+    user_stmt = select(User).where(User.id == context.user_id)
+    user_res = await db.execute(user_stmt)
+    user = user_res.scalars().first()
+
+    roles_stmt = select(UserRole.role).where(UserRole.user_id == context.user_id)
+    roles_res = await db.execute(roles_stmt)
+    active_roles = list(roles_res.scalars().all())
+
+    # We keep the same token_id? Or generate a new one. It's usually better to just use a new one.
+    # But since it's an upgrade without hard logout, let's keep the user's existing token_id if possible, or issue a new one
+    token_id = str(uuid.uuid4())
+
+    access_token, _ = create_access_token(
+        user_id=user.id,
+        email=user.email,
+        roles=active_roles,
+        token_id=token_id,
+    )
+
+    refresh_token, _ = create_refresh_token(
+        user_id=user.id,
+        token_id=token_id,
+    )
+
+    await create_session(
+        redis=redis,
+        user_id=user.id,
+        token_id=token_id,
+        ttl_seconds=7 * 24 * 3600,
+    )
+
+    # Could set the refresh token cookie, but for now just returning the access_token
+    # so frontend can dynamically intercept it
+    return {"access_token": access_token}

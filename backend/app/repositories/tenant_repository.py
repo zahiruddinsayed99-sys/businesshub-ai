@@ -44,6 +44,10 @@ class TenantRepository:
         hashed_password: str,
         admin_full_name: str,
         role: str = "TENANT_OWNER",
+        secondary_email: Optional[str] = None,
+        secondary_hashed_password: Optional[str] = None,
+        secondary_full_name: Optional[str] = None,
+        secondary_role: str = "DOMAIN_MEMBER"
     ) -> Tuple[Organization, User, UserRole]:
         """Atomically create Organization, Admin User, and UserRole inside single transaction."""
         org = Organization(
@@ -69,6 +73,25 @@ class TenantRepository:
             role=role,
         )
         db.add(user_role)
+
+        # If secondary user details provided (Admin Tool Onboarding), create them too
+        if secondary_email and secondary_hashed_password and secondary_full_name:
+            sec_user = User(
+                email=secondary_email,
+                hashed_password=secondary_hashed_password,
+                full_name=secondary_full_name,
+                is_active=True,
+            )
+            db.add(sec_user)
+            await db.flush()
+
+            sec_role = UserRole(
+                user_id=sec_user.id,
+                organization_id=org.id,
+                role=secondary_role,
+            )
+            db.add(sec_role)
+
         await db.commit()
 
         await db.refresh(org)

@@ -23,14 +23,7 @@
   }
 }
 
-.toast-error {
-  background: #ff4d4f;
-  color: white;
-  padding: 10px;
-  border-radius: 4px;
-  margin-bottom: 20px;
-  text-align: center;
-}
+
 
 .kanban-board {
   display: flex;
@@ -205,15 +198,7 @@
   flex-direction: column;
 }
 
-.loading-spinner {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-style: italic;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-}
+
 
 .draft-textarea {
   flex: 1;
