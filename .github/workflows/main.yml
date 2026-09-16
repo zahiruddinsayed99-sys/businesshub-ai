@@ -43,8 +43,7 @@ jobs:
 
       - name: Run Backend Tests
         env:
-          #DATABASE_URL: postgresql://postgres:password@localhost:5432/businesshub_test
-          DATABASE_TEST_URL: postgresql+asyncpg://postgres:postgres_dev_password_secure_123@localhost:5432/app-db-test
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres_dev_password_secure_123@localhost:5432/app-db-test
 
           TESTING: 'True'
         run: |
