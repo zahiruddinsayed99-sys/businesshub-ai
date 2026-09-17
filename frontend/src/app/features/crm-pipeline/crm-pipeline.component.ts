@@ -8,7 +8,7 @@ import { CrmAiService } from './crm-ai.service';
 import { CrmDeal } from './crm-deal.model';
 import { Subject, timer } from 'rxjs';
 import { switchMap, takeWhile, debounceTime } from 'rxjs/operators';
-import { environment } from '../../../environments/environment';
+import { environment } from '../../../environments/environment.prod';
 
 @Component({
   selector: 'app-crm-pipeline',

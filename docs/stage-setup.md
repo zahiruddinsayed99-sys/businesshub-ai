@@ -1,59 +1,64 @@
-Here is your beginner-friendly, step-by-step master plan to take BusinessHub AI live on a staging environment using **Supabase** (Database), **Render or Railway** (Backend & Redis), and **Vercel** (Frontend).
+Here is your complete, updated deployment record and reference guide for **BusinessHub AI**. This captures all the working configurations, including the Python version fix and service wiring for your portfolio staging environment.
 
 ---
 
-## Phase 1: Database Setup (Supabase)
+# BusinessHub AI — Staging Deployment Guide
 
-*Supabase gives you a free PostgreSQL database with `pgvector` built-in, so your RAG document embedding features will work right out of the box.*
+## Architecture Overview
 
-1. **Create Account & Project:** Go to [Supabase](https://www.google.com/search?q=https://supabase.com), log in, and create a new project. Give it a name and secure database password (save this password!).
-2. **Enable Vector Extension:**
-* In your Supabase dashboard sidebar, click on **SQL Editor**.
-* Run this quick command:
+* **Frontend:** Angular Standalone $\rightarrow$ Hosted on **Vercel**
+* **Backend:** FastAPI (Python 3.11) + Celery Workers $\rightarrow$ Hosted on **Render**
+* **Database (`pgvector`):** PostgreSQL $\rightarrow$ Hosted on **Supabase**
+* **Cache & Broker (Redis):** Key Value instance $\rightarrow$ Hosted on **Render**
+
+---
+
+## Step 1: Database Setup (Supabase)
+
+1. **Create Project:** Set up a new project on [Supabase](https://www.google.com/search?q=https://supabase.com) and save your database password.
+2. **Enable Vector Extension:** Navigate to the **SQL Editor** in your Supabase dashboard and run:
 ```sql
 create extension if not exists vector;
 
 ```
 
 
+3. **Get Connection String:** Go to **Database Settings** $\rightarrow$ **Connection string** $\rightarrow$ **Direct Connection string**, and copy your URI. It will look like:
+```text
+postgresql://postgres:[YOUR-PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres
 
-
-3. **Get Your Connection String:**
-* Go to **Project Settings** (gear icon) -> **Database**.
-* Copy the **URI** connection string. It will look like `postgresql://postgres:[YOUR-PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres`.
+```
 
 
 
 ---
 
-## Phase 2: Backend & Redis Setup (Render)
+## Step 2: Cache Setup (Render Key Value)
 
-*Render is beginner-friendly and handles both your FastAPI backend and a Redis instance cleanly.*
+1. In your Render dashboard, click **New+** $\rightarrow$ **Key Value**.
+2. Name your instance (e.g., `businesshub-redis`), select your region, and create it.
+3. Copy the **Internal/External Connection URL** for your backend configuration.
 
-1. **Deploy Redis:**
-* Go to [Render](https://www.google.com/search?q=https://render.com) and click **New+** -> **Redis**.
-* Name your instance (e.g., `businesshub-redis`), choose the free/hobby tier, and click **Create Redis**. Once active, copy its **Internal/External Redis URL**.
+---
 
+## Step 3: Backend Setup (Render Web Service)
 
-2. **Deploy FastAPI Backend:**
-* Click **New+** -> **Web Service** and connect your GitHub repository.
-* Configure the service:
+1. Connect your GitHub repository to Render as a **Web Service**.
+2. Configure the core settings:
 * **Root Directory:** `backend`
 * **Environment:** Python 3
 * **Build Command:** `pip install -r requirements.txt`
-* **Start Command:** `uvicorn main:app --host 0.0.0.0 --port $PORT`
+* **Start Command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 
 
-* **Add Environment Variables** under the settings tab:
-* `DATABASE_URL`: Change your Supabase URI to start with async driver syntax: `postgresql+asyncpg://postgres:[PASSWORD]@db.[REF].supabase.co:5432/postgres`
-* `REDIS_URL`: Paste the Redis URL you copied from Render.
-* `TESTING`: `False` (since this is staging/production).
+3. **Add Environment Variables** in the Render dashboard:
+* `DATABASE_URL`: Your Supabase connection string updated with the async driver: `postgresql+asyncpg://postgres:[PASSWORD]@db.[REF].supabase.co:5432/postgres`
+* `REDIS_URL`: Your Render Key Value connection URL.
+* `TESTING`: `False`
+* **`PYTHON_VERSION`**: `3.11.11` *(Crucial to bypass Python 3.14 compilation/SQLAlchemy compatibility bugs)*.
 
 
-
-
-3. **Run Migrations:**
-* Once your backend service builds successfully, use Render's **Shell** feature (or run Alembic locally targeting the Supabase URL once) to execute your database migrations:
+4. **Database Migrations:** Once your service builds successfully, run your Alembic migrations via Render's shell or locally against the Supabase URI:
 ```bash
 alembic upgrade head
 
@@ -61,34 +66,24 @@ alembic upgrade head
 
 
 
-
-4. **Save your Backend URL:** Once deployed, Render will give you a live URL (e.g., `[https://businesshub-backend.onrender.com](https://businesshub-backend.onrender.com)`). Keep this handy!
-
 ---
 
-## Phase 3: Frontend Setup (Vercel)
+## Step 4: Frontend Setup (Vercel)
 
-*Vercel is the easiest place to host modern Angular applications with zero configuration hassle.*
-
-1. **Import to Vercel:** Go to [Vercel](https://www.google.com/search?q=https://vercel.com), click **Add New...** -> **Project**, and import your GitHub repository.
-2. **Configure Project Settings:**
-* **Root Directory:** Click *Edit* and select the `frontend` folder.
-* **Framework Preset:** Angular (Vercel will auto-detect this).
+1. Import your repository into [Vercel](https://www.google.com/search?q=https://vercel.com).
+2. Configure project options:
+* **Root Directory:** `frontend`
+* **Framework Preset:** Angular
 * **Build Command:** `npm run build`
-* **Output Directory:** `dist/frontend/browser` (or check your local `angular.json` output path if it differs).
+* **Output Directory:** `dist/frontend/browser`
 
 
-3. **Add Environment Variables:**
-* Add a variable named `API_BASE_URL` (or whatever your Angular environment files use to point to the backend) and set its value to your Render backend URL (`[https://businesshub-backend.onrender.com](https://businesshub-backend.onrender.com)`).
+3. Add the environment variable:
+* `API_BASE_URL`: Your live Render backend URL (`[https://businesshub-ai.onrender.com](https://businesshub-ai.onrender.com)`).
 
 
-4. **Deploy:** Click **Deploy**! Vercel will build your Angular app and give you a live public URL (e.g., `[https://businesshub-ai.vercel.app](https://businesshub-ai.vercel.app)`).
+4. Click **Deploy**.
 
 ---
 
-## Phase 4: Final Verification
-
-1. Open your Vercel frontend URL in your browser.
-2. Test critical paths: Try logging in, uploading a test document to the RAG chat, or viewing a CRM deal. Because Supabase has `pgvector` and Render has Redis, everything will behave just like it did in your local environment and passing test suites!
-
-Whenever you are ready to kick this off, take it one phase at a time. Do you want to start by setting up Supabase, or tackle the backend configuration first?
+Would you like to review how to connect your Angular frontend environment files to the Vercel deployment URL next?
