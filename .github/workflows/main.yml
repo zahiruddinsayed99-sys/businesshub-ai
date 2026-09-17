@@ -1,4 +1,4 @@
-name: CI Test Suite 1
+name: CI Test Suite Biz
 
 on:
   push:
