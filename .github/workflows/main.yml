@@ -15,7 +15,7 @@ jobs:
         image: pgvector/pgvector:pg15
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres_dev_password_secure_123
+          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
           POSTGRES_DB: app-db-test
         ports:
           - 5432:5432
@@ -58,7 +58,7 @@ jobs:
           import asyncpg
 
           async def enable_vector():
-              conn = await asyncpg.connect('postgresql://postgres:postgres_dev_password_secure_123@localhost:5432/app-db-test')
+              conn = await asyncpg.connect('postgresql://postgres:${{ secrets.DB_PASSWORD }}@localhost:5432/app-db-test')
               await conn.execute('CREATE EXTENSION IF NOT EXISTS vector;')
               await conn.close()
 
@@ -67,7 +67,7 @@ jobs:
 
       - name: Run Backend Tests
         env:
-          DATABASE_URL: postgresql+asyncpg://postgres:postgres_dev_password_secure_123@localhost:5432/app-db-test
+          DATABASE_URL: postgresql+asyncpg://postgres:${{ secrets.DB_PASSWORD }}@localhost:5432/app-db-test
           REDIS_URL: redis://localhost:6379/0
           TESTING: 'True'
         run: |
