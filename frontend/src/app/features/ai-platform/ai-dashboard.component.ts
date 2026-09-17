@@ -5,7 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { Subject, interval, Subscription } from 'rxjs';
 import { switchMap, takeWhile, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
-import { environment } from '../../../environments/environment.prod';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-ai-dashboard',
