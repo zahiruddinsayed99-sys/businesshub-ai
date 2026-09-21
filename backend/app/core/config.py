@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     BACKEND_CORS_ORIGINS: Union[List[str], str] = [
         "http://localhost:4200",
         "http://127.0.0.1:4200",
+        "http://localhost:8000",
+        "https://businesshub-ai-five.vercel.app/login",
+        "https://businesshub-ai.onrender.com",        
     ]
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
